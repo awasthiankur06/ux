@@ -11,6 +11,7 @@ export function LlmSettingsPanel() {
   const [keyInputs, setKeyInputs] = useState({});
   const [eyEndpoint, setEyEndpoint] = useState("");
   const [eyModels, setEyModels] = useState("");
+  const [eyApiVersion, setEyApiVersion] = useState("");
   const [showEyConfig, setShowEyConfig] = useState(false);
 
   const refresh = async () => {
@@ -20,6 +21,7 @@ export function LlmSettingsPanel() {
     const config = s.provider_configs?.ey_incubator || {};
     setEyEndpoint(config.base_url || "");
     setEyModels((config.models || c.ey_incubator || []).join(", "));
+    setEyApiVersion(config.api_version || "");
   };
 
   useEffect(() => {
@@ -66,7 +68,7 @@ export function LlmSettingsPanel() {
   const saveEyConfig = async () => {
     const models = eyModels.split(",").map((model) => model.trim()).filter(Boolean);
     try {
-      const updated = await updateEyIncubatorConfig({ base_url: eyEndpoint, models });
+      const updated = await updateEyIncubatorConfig({ base_url: eyEndpoint, models, api_version: eyApiVersion });
       setSettings(updated);
       setChoices(await getModelChoices());
       toast.success("EY Incubator endpoint and models saved");
@@ -169,9 +171,10 @@ export function LlmSettingsPanel() {
         {showEyConfig && (
           <div className="space-y-4 pt-4">
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">EY Incubator Endpoint</p>
-            <p className="text-xs text-muted-foreground">OpenAI-compatible Chat Completions endpoint. Model names are comma-separated and become available in agent model overrides.</p>
-            <Input data-testid="ey-incubator-endpoint-input" value={eyEndpoint} onChange={(e) => setEyEndpoint(e.target.value)} placeholder="https://your-ey-endpoint/v1" className="rounded-none bg-transparent border-border text-[11px] h-8" />
-            <Input data-testid="ey-incubator-models-input" value={eyModels} onChange={(e) => setEyModels(e.target.value)} placeholder="gpt-4o, gpt-4.1" className="rounded-none bg-transparent border-border text-[11px] h-8" />
+            <p className="text-xs text-muted-foreground">EY Incubator uses Azure-style deployments. Enter its base endpoint, API version, and deployment names exactly as supplied by EY.</p>
+            <Input data-testid="ey-incubator-endpoint-input" value={eyEndpoint} onChange={(e) => setEyEndpoint(e.target.value)} placeholder="https://your-ey-endpoint" className="rounded-none bg-transparent border-border text-[11px] h-8" />
+            <Input data-testid="ey-incubator-api-version-input" value={eyApiVersion} onChange={(e) => setEyApiVersion(e.target.value)} placeholder="API version, e.g. 2024-02-15-preview" className="rounded-none bg-transparent border-border text-[11px] h-8" />
+            <Input data-testid="ey-incubator-models-input" value={eyModels} onChange={(e) => setEyModels(e.target.value)} placeholder="Deployment names, comma-separated" className="rounded-none bg-transparent border-border text-[11px] h-8" />
             <Button data-testid="save-ey-incubator-config-button" onClick={saveEyConfig} className="rounded-none bg-secondary text-black hover:bg-white text-[11px] uppercase font-bold gap-1.5">
               <Save className="w-3.5 h-3.5" /> Save EY Configuration
             </Button>

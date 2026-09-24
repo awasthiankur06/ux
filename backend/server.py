@@ -475,19 +475,23 @@ class ApiKeyUpdate(BaseModel):
 class EyIncubatorConfigUpdate(BaseModel):
     base_url: str
     models: list[str]
+    api_version: str
 
 
 @api_router.put("/settings/llm/ey-incubator")
 async def update_ey_incubator_config(payload: EyIncubatorConfigUpdate):
     base_url = payload.base_url.strip().rstrip("/")
     models = list(dict.fromkeys(model.strip() for model in payload.models if model.strip()))
+    api_version = payload.api_version.strip()
     if not base_url.startswith(("https://", "http://")):
         raise HTTPException(status_code=400, detail="Endpoint must start with http:// or https://")
     if not models:
         raise HTTPException(status_code=400, detail="Add at least one EY Incubator model")
+    if not api_version:
+        raise HTTPException(status_code=400, detail="EY Incubator API version is required")
     await db.settings.update_one(
         {"id": "global"},
-        {"$set": {"provider_configs.ey_incubator": {"base_url": base_url, "models": models}}},
+        {"$set": {"provider_configs.ey_incubator": {"base_url": base_url, "models": models, "api_version": api_version}}},
         upsert=True,
     )
     return await get_llm_settings()
