@@ -3,7 +3,7 @@ import { getLlmSettings, updateLlmSettings, updateLlmApiKey, deleteLlmApiKey, up
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Save, KeyRound, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Save, KeyRound, Trash2 } from "lucide-react";
 
 export function LlmSettingsPanel() {
   const [settings, setSettings] = useState(null);
@@ -11,6 +11,7 @@ export function LlmSettingsPanel() {
   const [keyInputs, setKeyInputs] = useState({});
   const [eyEndpoint, setEyEndpoint] = useState("");
   const [eyModels, setEyModels] = useState("");
+  const [showEyConfig, setShowEyConfig] = useState(false);
 
   const refresh = async () => {
     const [s, c] = await Promise.all([getLlmSettings(), getModelChoices()]);
@@ -103,16 +104,6 @@ export function LlmSettingsPanel() {
       </div>
 
       <div className="space-y-4 pt-2 border-t border-border">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground pt-4">EY Incubator Endpoint</p>
-        <p className="text-xs text-muted-foreground">OpenAI-compatible Chat Completions endpoint. Model names are comma-separated and become available in agent model overrides.</p>
-        <Input data-testid="ey-incubator-endpoint-input" value={eyEndpoint} onChange={(e) => setEyEndpoint(e.target.value)} placeholder="https://your-ey-endpoint/v1" className="rounded-none bg-transparent border-border text-[11px] h-8" />
-        <Input data-testid="ey-incubator-models-input" value={eyModels} onChange={(e) => setEyModels(e.target.value)} placeholder="gpt-4o, gpt-4.1" className="rounded-none bg-transparent border-border text-[11px] h-8" />
-        <Button data-testid="save-ey-incubator-config-button" onClick={saveEyConfig} className="rounded-none bg-secondary text-black hover:bg-white text-[11px] uppercase font-bold gap-1.5">
-          <Save className="w-3.5 h-3.5" /> Save EY Configuration
-        </Button>
-      </div>
-
-      <div className="space-y-4 pt-2 border-t border-border">
         <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-1.5 pt-4">
           <KeyRound className="w-3 h-3" /> Provider API Keys
         </p>
@@ -163,6 +154,29 @@ export function LlmSettingsPanel() {
             </div>
           );
         })}
+      </div>
+
+      <div className="pt-2 border-t border-border">
+        <button
+          type="button"
+          data-testid="toggle-ey-incubator-config"
+          onClick={() => setShowEyConfig((visible) => !visible)}
+          className="w-full flex items-center gap-1.5 pt-4 text-[10px] uppercase tracking-[0.2em] text-muted-foreground hover:text-secondary transition-colors"
+        >
+          {showEyConfig ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          Advanced / Provider Configuration
+        </button>
+        {showEyConfig && (
+          <div className="space-y-4 pt-4">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">EY Incubator Endpoint</p>
+            <p className="text-xs text-muted-foreground">OpenAI-compatible Chat Completions endpoint. Model names are comma-separated and become available in agent model overrides.</p>
+            <Input data-testid="ey-incubator-endpoint-input" value={eyEndpoint} onChange={(e) => setEyEndpoint(e.target.value)} placeholder="https://your-ey-endpoint/v1" className="rounded-none bg-transparent border-border text-[11px] h-8" />
+            <Input data-testid="ey-incubator-models-input" value={eyModels} onChange={(e) => setEyModels(e.target.value)} placeholder="gpt-4o, gpt-4.1" className="rounded-none bg-transparent border-border text-[11px] h-8" />
+            <Button data-testid="save-ey-incubator-config-button" onClick={saveEyConfig} className="rounded-none bg-secondary text-black hover:bg-white text-[11px] uppercase font-bold gap-1.5">
+              <Save className="w-3.5 h-3.5" /> Save EY Configuration
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
