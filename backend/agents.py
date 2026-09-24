@@ -1,7 +1,7 @@
 import os
 import json
+import httpx
 from emergentintegrations.llm.chat import LlmChat, UserMessage
-from openai import AsyncOpenAI
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
 
@@ -35,18 +35,24 @@ async def run_llm_agent(system_prompt: str, provider: str, model: str, user_text
             raise RuntimeError("EY Incubator endpoint is not configured. Add it in Agent Inventory > LLM Settings.")
         if not api_key:
             raise RuntimeError("EY Incubator API key is not configured. Add it in Agent Inventory > LLM Settings.")
-        client = AsyncOpenAI(
-            api_key=api_key,
-            base_url=base_url,
-        )
-        response = await client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_text},
-            ],
-        )
-        content = response.choices[0].message.content
+        async with httpx.AsyncClient(timeout=120) as client:
+            response = await client.post(
+                f"{base_url}/chat/completions",
+                headers={"api-key": api_key, "Content-Type": "application/json"},
+                json={
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_text},
+                    ],
+                },
+            )
+        response.raise_for_status()
+        data = response.json()
+        try:
+            content = data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as error:
+            raise RuntimeError("EY Incubator returned an unexpected Chat Completions response.") from error
         if not content:
             raise RuntimeError("EY Incubator returned an empty response.")
         return content
