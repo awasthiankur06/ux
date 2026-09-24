@@ -5,6 +5,7 @@ import logging
 import uuid
 import zipfile
 from datetime import datetime, timezone
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -30,6 +31,17 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+LOG_DIR = ROOT_DIR / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+pipeline_logger = logging.getLogger("ux_orchestrator.pipeline")
+pipeline_logger.setLevel(logging.INFO)
+pipeline_logger.propagate = False
+if not pipeline_logger.handlers:
+    pipeline_handler = RotatingFileHandler(
+        LOG_DIR / "pipeline.log", maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+    )
+    pipeline_handler.setFormatter(logging.Formatter("%(message)s"))
+    pipeline_logger.addHandler(pipeline_handler)
 
 
 class RunCreate(BaseModel):
@@ -52,13 +64,22 @@ async def get_agent_map() -> dict:
 
 
 async def push_log(run_id: str, stage: str, label: str, status: str, detail: str = ""):
+    timestamp = datetime.now(timezone.utc).isoformat()
+    pipeline_logger.info(json.dumps({
+        "timestamp": timestamp,
+        "run_id": run_id,
+        "stage": stage,
+        "label": label,
+        "status": status,
+        "detail": detail,
+    }, ensure_ascii=False))
     await db.runs.update_one(
         {"id": run_id},
         {
             "$set": {"current_stage": stage, "status": "error" if status == "error" else "running"},
             "$push": {"stage_log": {
                 "stage": stage, "label": label, "status": status, "detail": detail,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": timestamp,
             }},
         },
     )

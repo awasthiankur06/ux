@@ -1,18 +1,9 @@
 import os
 import json
-import logging
 import httpx
 from emergentintegrations.llm.chat import LlmChat, UserMessage
 
 EMERGENT_LLM_KEY = os.environ.get("EMERGENT_LLM_KEY")
-logger = logging.getLogger(__name__)
-
-
-def _redact_headers(headers: dict) -> dict:
-    return {
-        key: "****" if key.lower() in {"api-key", "authorization", "x-api-key", "cookie", "set-cookie"} else value
-        for key, value in headers.items()
-    }
 
 
 def _parse_json(text: str):
@@ -56,10 +47,6 @@ async def run_llm_agent(system_prompt: str, provider: str, model: str, user_text
                 {"role": "user", "content": user_text},
             ],
         }
-        logger.info(
-            "EY_INCUBATOR_REQUEST %s",
-            json.dumps({"method": "POST", "url": url, "params": {"api-version": api_version}, "headers": _redact_headers(headers), "payload": payload}),
-        )
         async with httpx.AsyncClient(timeout=120) as client:
             response = await client.post(
                 url,
@@ -67,10 +54,6 @@ async def run_llm_agent(system_prompt: str, provider: str, model: str, user_text
                 headers=headers,
                 json=payload,
             )
-        logger.info(
-            "EY_INCUBATOR_RESPONSE %s",
-            json.dumps({"status_code": response.status_code, "headers": _redact_headers(dict(response.headers)), "body": response.text}),
-        )
         response.raise_for_status()
         data = response.json()
         try:
