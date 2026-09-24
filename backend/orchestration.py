@@ -6,11 +6,7 @@ from crawler import crawl_site, capture_screenshot, summarize_pages
 MODEL_CHOICES = {
     "openai": ["gpt-5.4", "gpt-5.4-mini", "gpt-5.6-terra"],
     "anthropic": ["claude-sonnet-4-6", "claude-opus-4-7", "claude-haiku-4-5-20251001"],
-    "ey_incubator": [
-        model.strip()
-        for model in os.environ.get("EY_INCUBATOR_MODELS", os.environ.get("EY_INCUBATOR_DEFAULT_MODEL", "gpt-4o")).split(",")
-        if model.strip()
-    ],
+    "ey_incubator": ["gpt-4o", "gpt-4o-mini", "gpt-4.1"],
 }
 
 
