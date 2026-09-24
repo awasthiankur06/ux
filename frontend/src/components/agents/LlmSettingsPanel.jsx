@@ -75,7 +75,7 @@ export function LlmSettingsPanel() {
   };
 
   return (
-    <div className="p-6 max-w-md space-y-8" data-testid="llm-settings-panel">
+    <div className="h-full overflow-y-auto p-6 max-w-md space-y-8" data-testid="llm-settings-panel">
       <div className="space-y-4">
         <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Global Default Model</p>
         <p className="text-xs text-muted-foreground">Used by any agent that doesn't have its own model override set in the Agent Inventory.</p>
