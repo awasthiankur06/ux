@@ -1,0 +1,103 @@
+{
+  "theme": "dark",
+  "typography": {
+    "headings": "Chivo",
+    "body": "JetBrains Mono",
+    "logs": "JetBrains Mono",
+    "rules": [
+      "Use tight letter spacing for headings (tracking-tight) to create a dense, technical aesthetic.",
+      "Overlines and labels MUST be uppercase, tiny, wide spacing (tracking-[0.2em]).",
+      "Line height: leading-none for headers, leading-relaxed for body.",
+      "Never use Inter for headings.",
+      "Font weights: Rely on extreme contrast (e.g., 300 Light vs 700 Bold)."
+    ]
+  },
+  "colors": {
+    "archetype": "Mission Control / Dark Technical (Archetype 4 & 7 Hybrid)",
+    "base": {
+      "background": "#0A0A0A",
+      "surface": "#141414",
+      "surface_raised": "#1E1E1E",
+      "border": "#262626"
+    },
+    "accents": {
+      "primary": "#EAFE50", 
+      "secondary": "#00E5FF",
+      "destructive": "#FF3B30",
+      "success": "#34C759"
+    },
+    "text": {
+      "primary": "#FFFFFF",
+      "secondary": "#A1A1AA",
+      "muted": "#71717A"
+    },
+    "rules": [
+      "NO purple gradients. NO generic SaaS blue.",
+      "Use solid dark colors. Do NOT use dark colors as gradients.",
+      "Use 1px borders (border-white/10) for structure, no soft shadows.",
+      "Hover states must increase contrast and text visibility explicitly (e.g. hover:text-black hover:bg-primary).",
+      "Focus states must have sharp, high-contrast rings (ring-1 ring-primary ring-offset-1 ring-offset-background)."
+    ]
+  },
+  "surfaces": [
+    "Grid Borders (The 'Technical' Look): Expose the skeleton. Make the grid visible using border-collapse or grid items with border-r border-b border-border.",
+    "Retro-Futurism / Terminal Look: Deep black background, visible grid lines, no shadows. Use monospace fonts extensively for data.",
+    "Dashboard Cards: Cardless style or flat backgrounds (bg-surface). 1px subtle border, strictly no shadows. On hover, use a sharp 1px offset translation rather than soft shadow."
+  ],
+  "visual_enhancers": {
+    "textures": "Add a subtle global noise/grain overlay to kill digital flatness.",
+    "motion": "Use Framer Motion for agent step transitions. Staggered list animations for logs. Use `layoutId` for smooth transitions between pipeline states.",
+    "empty_states": "Use ASCII art or simple monospace diagrams (like CLI tools) for empty states rather than generic vector illustrations."
+  },
+  "layout_strategy": {
+    "type": "High Density Grid (For Dashboards / Analytics)",
+    "rules": [
+      "Base Grid: h-screen flex or grid layout (no global scrolling). Inner panels handle their own scrolling (overflow-y-auto) to mimic an IDE/Mission Control.",
+      "Left Panel (Width ~25%): Input forms (SRS/URL) & Agent Orchestration Reasoning Log (Live Progress).",
+      "Center Panel (Width ~50%): Live Preview Engine (Rendered HTML/CSS wireframes) / Happy-path Flow Diagram.",
+      "Right Panel (Width ~25%): Context / Output Panel (UX Rating report, Finalize & Export options, Code view).",
+      "Use standard Tailwind grid gaps (gap-0) but manage borders manually to create a seamless paneled UI."
+    ]
+  },
+  "components_strategy": {
+    "buttons": "Sharp edges (rounded-none), flat colors. Primary action uses bg-primary text-black. Interaction: translate-x/y on click.",
+    "inputs": "Shadcn components stripped of rounded corners (rounded-none), using monospace font, 1px borders, subtle focus rings.",
+    "cards": "Cardless style. Delineate space using 1px borders (border-border).",
+    "tabs": "Minimalist underline style or sharp block style. No rounded pill tabs.",
+    "toasts": "Sonner (dark theme, sharp corners, border-white/10)."
+  },
+  "key_features_guidelines": {
+    "super_agent_orchestration_panel": "Design as a terminal/log window. Use monospace text, color-coded tags for different agents (e.g., [UX_AGENT], [UI_AGENT]). Show pulsing text cursor or indicator for active agent.",
+    "live_wireframe_preview": "Center stage. A framed 'browser window' style container to show the live HTML/CSS output. Include click-through navigation controls and toggle between 'Flow Diagram' and 'Live Render'.",
+    "ux_rating_report": "Data-heavy presentation. Use horizontal progress bars or segmented block charts with stark contrasts (destructive red for issues, success green for good). Justify scores with monospace text blocks.",
+    "input_panel": "Dual mode: Paste SRS text or enter Website URL (Crawl). Show a distinct, technical 'INITIALIZE_ORCHESTRATOR' button.",
+    "finalize_export": "Slide-out or right-hand pane. Display generated code blocks (React + CSS, API spec) with syntax highlighting. Prominent 'EXPORT_ARTIFACTS' action."
+  },
+  "icons_and_assets": {
+    "library": "Lucide React (sharp variants preferred)",
+    "installation": "already installed",
+    "rules": [
+      "Use sharp, technical icons.",
+      "AVOID emojis completely (NO 🤖🧠💭💡🔮🎯)."
+    ]
+  },
+  "image_urls": [],
+  "instructions_to_main_agent": [
+    "Install required fonts from Google Fonts: 'Chivo' and 'JetBrains Mono'. Update tailwind.config.js to include these fonts.",
+    "Structure the main layout as an IDE-like interface: absolute full screen (h-screen w-screen overflow-hidden) with flex/grid panels that have internal scrolling.",
+    "Do NOT use HTML-based components for advanced user interactions. Use Shadcn but override border radii to `rounded-none` or `rounded-sm`.",
+    "Implement the agent reasoning logs with a typewriter effect or staggered reveal to feel 'live' and computational.",
+    "Do NOT center align the app container. Ensure strict left-aligned structure across all textual data."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Avoid generic 'AI slop' aesthetics like rounded purple buttons with stars.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Create depth through border hierarchy and layout spacing, not soft drop shadows.",
+    "You MUST NOT apply universal transition (e.g., transition: all). Add transitions to specific properties (e.g., transform, opacity).",
+    "You MUST NOT center align the app container (.App { text-align: center; } is forbidden).",
+    "Always use modern button styles (sharp corners for this theme) with fast interaction animations.",
+    "NEVER use AI assistant Emoji characters.",
+    "Every interaction needs micro-animations - hover states, tight transitions.",
+    "Ensure all interactive and key informational elements have data-testid attributes (kebab-case, role-based)."
+  ]
+}

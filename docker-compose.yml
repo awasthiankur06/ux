@@ -1,0 +1,26 @@
+version: "3.8"
+
+services:
+  app:
+    image: mishramesh/mydesignermaster:latest
+    restart: unless-stopped
+    ports:
+      - "4345:80"
+    environment:
+      MONGO_URL: "mongodb://mongo:27017"
+      DB_NAME: "mydesignermaster"
+      CORS_ORIGINS: "*"
+      # Self-hosted deployments cannot use the Emergent Universal LLM Key.
+      # Put your OWN real OpenAI API key here (starts with "sk-", not "sk-emergent-").
+      EMERGENT_LLM_KEY: "REPLACE_WITH_YOUR_OWN_OPENAI_API_KEY"
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
