@@ -144,7 +144,7 @@ export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, 
           srcDoc={injectCommentScript(current.html, designSystem)}
           onLoad={sendCommentMode}
           className="flex-1 w-full border border-border bg-white min-h-0"
-          sandbox="allow-scripts"
+          sandbox="allow-scripts allow-same-origin"
         />
         <div className="flex justify-between mt-3 shrink-0">
           <button

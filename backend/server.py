@@ -341,7 +341,7 @@ async def preview_all_wireframes(run_id: str):
     for index, screen in enumerate(screens, start=1):
         name = html.escape(screen.get("screen_name") or f"Screen {index}")
         source = html.escape(_preview_screen_html(screen.get("html") or "", design_system), quote=True)
-        frames.append(f'<section><h2>{index}. {name}</h2><div class="viewport"><iframe title="{name}" sandbox="allow-scripts" srcdoc="{source}"></iframe></div></section>')
+        frames.append(f'<section><h2>{index}. {name}</h2><div class="viewport"><iframe title="{name}" sandbox="allow-scripts allow-same-origin" srcdoc="{source}"></iframe></div></section>')
     return HTMLResponse(
         "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>"
         "<title>UX Orchestrator - Responsive Wireframes</title><style>body{margin:0;background:#eef1f4;color:#17212b;font-family:Arial,sans-serif}header{position:sticky;top:0;background:#12263a;color:white;padding:16px 24px;z-index:2;display:flex;gap:16px;align-items:center;flex-wrap:wrap}.controls{display:flex;gap:8px}.controls button{background:#fff;border:0;padding:7px 10px;cursor:pointer}.controls button.active{background:#00e5ff}main{padding:24px;display:grid;gap:24px}section{background:white;border:1px solid #ccd5dd;box-shadow:0 2px 8px #0001;overflow:auto}h2{margin:0;padding:12px 16px;font-size:16px}.viewport{width:100%;min-width:390px;margin:auto;transition:width .2s}.viewport.tablet{width:768px}.viewport.mobile{width:390px}iframe{display:block;width:100%;height:820px;border:0;border-top:1px solid #ccd5dd;background:white}</style></head>"
