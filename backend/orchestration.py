@@ -139,7 +139,7 @@ async def run_gov_compliance_analysis(agent_doc: dict, settings: dict, run_id: s
 async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happy_path: list, brand_reference: str | None, gov_compliance: dict | None) -> list:
     provider, model = resolve_model(agent_doc, settings)
     profile = get_profile()
-    user = json.dumps({
+    user_payload = {
         "happy_path": happy_path,
         "gov_compliance": gov_compliance or {},
         "brand_reference": brand_reference,
@@ -147,7 +147,7 @@ async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happ
         "dbim_components": profile["components"],
         "dbim_patterns": profile["patterns"],
         "controlled_fallback_patterns": profile["fallback_patterns"],
-    })
+    }
     runtime_policy = (
         "\n\nRuntime policy: The supplied controlled_fallback_patterns are internal semantic fallbacks, not DBIM "
         "components. Use one only when no approved DBIM component fits. Use local-only implementation, add its "
@@ -160,11 +160,14 @@ async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happ
         "container, row, col-*, navbar, card, btn, form-control, table, alert, breadcrumb, pagination, "
         "d-flex, gap-*, p-*, m-*, text-*); do not output unstyled semantic-only markup."
     )
-    user["generation_contract"] = (
+    user_payload["generation_contract"] = (
         "Generate exactly one complete standalone HTML document for every happy_path item. Keep each screen_name "
         "exactly as supplied and in the same order. Never merge or omit screens."
     )
-    raw = await run_llm_agent(agent_doc["system_prompt"] + runtime_policy, provider, model, user, f"{run_id}-dbim-wireframe", settings)
+    raw = await run_llm_agent(
+        agent_doc["system_prompt"] + runtime_policy, provider, model, json.dumps(user_payload),
+        f"{run_id}-dbim-wireframe", settings,
+    )
     return await _complete_screen_set(
         agent_doc, settings, run_id, happy_path, _parse_json(raw).get("screens", []), brand_reference,
         gov_compliance=gov_compliance, dbim_profile=profile, runtime_policy=runtime_policy,
