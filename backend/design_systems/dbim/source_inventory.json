@@ -26,5 +26,9 @@
     "file": "fallback_patterns.json",
     "status": "internal semantic fallbacks for gaps in the public DBIM sample library; they are not represented as official DBIM components"
   },
+  "chapters_and_application": {
+    "file": "chapters_application_inventory.json",
+    "status": "All 10 public DBIM Chapter routes and public DBIM Application groups were traversed on 2026-09-25. The inventory distinguishes generation/pre-check controls from operational or deployment obligations."
+  },
   "excluded": ["login", "CMS administration", "approval and role management", "dashboard", "CCPS subscription/API", "credential-required content"]
 }

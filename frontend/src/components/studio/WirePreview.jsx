@@ -32,8 +32,15 @@ const COMMENT_SCRIPT = `
 
 function injectCommentScript(html) {
   if (!html) return html;
-  if (html.includes("</body>")) return html.replace("</body>", COMMENT_SCRIPT + "</body>");
-  return html + COMMENT_SCRIPT;
+  // srcDoc has an about:srcdoc base URL. Make local DBIM package references point
+  // to the frontend that is currently serving Studio, not to the API/preview page.
+  const frontendBase = window.location.origin;
+  let prepared = html.replace(/(["'])\/design-systems\//g, `$1${frontendBase}/design-systems/`);
+  const baseTag = `<base href="${frontendBase}/">`;
+  if (prepared.includes("</head>")) prepared = prepared.replace("</head>", baseTag + "</head>");
+  else prepared = baseTag + prepared;
+  if (prepared.includes("</body>")) return prepared.replace("</body>", COMMENT_SCRIPT + "</body>");
+  return prepared + COMMENT_SCRIPT;
 }
 
 export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, setCommentMode, onElementSelected, runId }) {

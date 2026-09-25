@@ -1,0 +1,86 @@
+{
+  "collected_at": "2026-09-25",
+  "authority": "https://dbimtoolkit.digifootprint.gov.in/",
+  "classification": "Public DBIM Chapters and DBIM Application source inventory. A design pre-check aid, not a certification record.",
+  "scope": "Public pages only; login, CMS, approval, dashboard and CCPS/API areas were excluded.",
+  "chapters": [
+    {
+      "name": "Introduction",
+      "url": "https://dbimtoolkit.digifootprint.gov.in/dbim-chapters?slug=introduction",
+      "precheck_use": ["Use a consistent Government of India design language across a generated service."]
+    },
+    {
+      "name": "Colours, Typography and Icons & Styles",
+      "urls": [
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-chapters?slug=colours",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-chapters?slug=typography",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-chapters?slug=icons-and-styles"
+      ],
+      "precheck_use": ["Use only approved/local design-system tokens and approved icon assets.", "Require manual review for palette contrast, multilingual font coverage, icon selection and icon meaning."]
+    },
+    {
+      "name": "Logo and Imagery",
+      "urls": [
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-chapters?slug=logo",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-chapters?slug=imagery"
+      ],
+      "precheck_use": ["Use verified user-provided ministry branding only; otherwise retain the neutral placeholder.", "Do not separate, manipulate or use the State Emblem as a generic placeholder.", "Require accessible alternative text and a human review of image permissions, licensing, quality and file size."]
+    },
+    {
+      "name": "Content, Accessibility, Search and Performance",
+      "urls": [
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-chapters?slug=content",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-chapters?slug=adherence-to-accessibility",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-chapters?slug=search",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-chapters?slug=performance-enhancement"
+      ],
+      "precheck_use": ["Validate semantic HTML, heading hierarchy, labels, accessible names, alt text, secure URLs and responsive viewport.", "Generate banner copy as HTML text rather than embedding required text in an image.", "Flag multilingual support, content ownership/lifecycle, search, consent/privacy, lazy loading, image optimisation, third-party scripts and performance testing for manual/deployment review.", "CCPS subscription/API use is an external operational requirement and is outside this app's generation scope."]
+    }
+  ],
+  "application": [
+    {
+      "name": "Ministry or Department Website",
+      "urls": [
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=ministry_department&slug=introduction",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=ministry_department&slug=information-architecture",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=ministry_department&slug=user-personas",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=ministry_department&slug=content-tagging",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=ministry_department&slug=ui-design-and-homepage",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=ministry_department&slug=content-section"
+      ],
+      "precheck_use": ["Require global menu-based navigation and the mandatory first-level website sections where applicable.", "Use clear, consistent, intuitive and responsive page structures.", "Use persona and content-tagging findings from the project/SRS; surface missing research as a review item.", "Prompt for the recommended ministry content areas: About, organisation, performance, services/schemes, vacancies, documents, media and connect."]
+    },
+    {
+      "name": "Forms and Key Mandatory Directives for Content",
+      "urls": [
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=forms&slug=guidelines",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=key_mandatory&slug=introduction"
+      ],
+      "precheck_use": ["For every generated form require programmatic labels, clearly named controls, keyboard review and a manual review of validation, consent and service-specific data requirements.", "Keep content requirements as human-reviewed obligations where they depend on the actual published content."]
+    },
+    {
+      "name": "Mobile Applications",
+      "urls": [
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=mobile_apps&slug=user-interface-and-user-experience-ui--ux-design",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=mobile_apps&slug=data-security-and-privacy",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=mobile_apps&slug=application-hosting"
+      ],
+      "precheck_use": ["Require responsive, uncluttered layouts; DBIM-aligned typography, colour, iconography, logo and content; accessible feedback/contact paths and multilingual review.", "Flag SSO, CCPS integration, data consent, DPDP/privacy, encryption, CERT-In audit, user testing, offline support and Gov.In app-store hosting as product/deployment obligations rather than automatic wireframe checks."]
+    },
+    {
+      "name": "Social Media and CIO Responsibilities",
+      "urls": [
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=social_media&slug=introduction",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=social_media&slug=dos-and-donts",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=social_media&slug=sustaining-brand-presence",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=social_media&slug=mygov-and-ministries-collaboration-checklist",
+        "https://dbimtoolkit.digifootprint.gov.in/dbim-applications?type=roles_responsibility&slug=introduction"
+      ],
+      "precheck_use": ["If a screen contains social links, require verified official destinations and do not invent social profiles or campaign claims.", "Treat content calendars, monitoring, analytics, MyGov coordination, account verification, campaign reporting and CIO governance as operational governance—not wireframe compliance."]
+    }
+  ],
+  "automation_boundary": {
+    "automatically_checkable_now": ["local DBIM assets", "prohibited unapproved visual CDNs", "document metadata", "heading order", "image alt", "form labels", "button names", "HTTPS links", "approved component/fallback traceability"],
+    "manual_or_deployment_review": ["official branding and visual-asset rights", "contrast and icon suitability", "keyboard/focus behaviour", "multilingual quality", "actual information architecture", "privacy/consent", "security audit", "CCPS/SSO/platform integration", "performance/security testing", "content governance"]
+  }
+}

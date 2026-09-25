@@ -111,10 +111,17 @@ def summarize_result(kind: str, value) -> str:
 async def run_wireframe_generation(agent_doc: dict, settings: dict, run_id: str, happy_path: list, brand_reference: str | None) -> list:
     provider, model = resolve_model(agent_doc, settings)
     brand_clause = f"\n\nBrand reference provided by the user - reuse its colors/fonts/style consistently:\n{brand_reference}" if brand_reference else ""
-    user = json.dumps(happy_path) + brand_clause
+    user = (
+        "Generate exactly one complete screen for EVERY approved happy-path item below. "
+        "Return the same number of screens, retain each screen_name exactly, and keep their order. "
+        "Never merge, omit or replace a happy-path screen.\n\n"
+        + json.dumps(happy_path)
+        + brand_clause
+    )
     raw = await run_llm_agent(agent_doc["system_prompt"], provider, model, user, f"{run_id}-wireframe", settings)
-    data = _parse_json(raw)
-    return data.get("screens", [])
+    return await _complete_screen_set(
+        agent_doc, settings, run_id, happy_path, _parse_json(raw).get("screens", []), brand_reference
+    )
 
 
 async def run_gov_compliance_analysis(agent_doc: dict, settings: dict, run_id: str, context: dict, brand_reference: str | None) -> dict:
@@ -149,9 +156,73 @@ async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happ
         " If an official ministry/department logo, icon or image is needed but not supplied in the local asset "
         "manifest, render a visible text placeholder marked data-gov-asset-placeholder with a descriptive value "
         "such as department-logo or official-image-required. Do not invent an asset or use an external URL."
+        " Use the local compiled DBIM Bootstrap 5.3 utility classes for visible layout and styling (for example "
+        "container, row, col-*, navbar, card, btn, form-control, table, alert, breadcrumb, pagination, "
+        "d-flex, gap-*, p-*, m-*, text-*); do not output unstyled semantic-only markup."
+    )
+    user["generation_contract"] = (
+        "Generate exactly one complete standalone HTML document for every happy_path item. Keep each screen_name "
+        "exactly as supplied and in the same order. Never merge or omit screens."
     )
     raw = await run_llm_agent(agent_doc["system_prompt"] + runtime_policy, provider, model, user, f"{run_id}-dbim-wireframe", settings)
-    return _parse_json(raw).get("screens", [])
+    return await _complete_screen_set(
+        agent_doc, settings, run_id, happy_path, _parse_json(raw).get("screens", []), brand_reference,
+        gov_compliance=gov_compliance, dbim_profile=profile, runtime_policy=runtime_policy,
+    )
+
+
+def _screen_key(value: str | None) -> str:
+    return " ".join((value or "").casefold().split())
+
+
+def _align_screens_to_happy_path(happy_path: list, screens: list) -> tuple[list, list]:
+    """Keep valid first responses in the user-approved happy-path order."""
+    by_name = {}
+    for screen in screens if isinstance(screens, list) else []:
+        if isinstance(screen, dict) and screen.get("screen_name") and screen.get("html"):
+            by_name.setdefault(_screen_key(screen["screen_name"]), screen)
+    aligned, missing = [], []
+    for step in happy_path:
+        name = step.get("screen_name") or "Untitled screen"
+        screen = by_name.get(_screen_key(name))
+        if screen:
+            aligned.append({**screen, "screen_name": name})
+        else:
+            missing.append(step)
+    return aligned, missing
+
+
+async def _complete_screen_set(agent_doc: dict, settings: dict, run_id: str, happy_path: list, initial_screens: list,
+                               brand_reference: str | None, gov_compliance: dict | None = None,
+                               dbim_profile: dict | None = None, runtime_policy: str = "") -> list:
+    """Repair partial LLM output without ever silently showing fewer screens than the approved flow."""
+    aligned, missing = _align_screens_to_happy_path(happy_path, initial_screens)
+    if not missing:
+        return aligned
+
+    provider, model = resolve_model(agent_doc, settings)
+    generated = {_screen_key(screen["screen_name"]): screen for screen in aligned}
+    for index, step in enumerate(missing, start=1):
+        name = step.get("screen_name") or "Untitled screen"
+        repair_payload = {
+            "required_screen": step,
+            "instruction": "Generate ONLY this one missing screen. Its screen_name must exactly match required_screen.screen_name. Return one element in screens.",
+            "brand_reference": brand_reference,
+        }
+        if gov_compliance is not None:
+            repair_payload.update({"gov_compliance": gov_compliance, "dbim_manifest": dbim_profile["manifest"],
+                                   "dbim_components": dbim_profile["components"], "dbim_patterns": dbim_profile["patterns"],
+                                   "controlled_fallback_patterns": dbim_profile["fallback_patterns"]})
+        raw = await run_llm_agent(
+            agent_doc["system_prompt"] + runtime_policy, provider, model, json.dumps(repair_payload),
+            f"{run_id}-screen-repair-{index}", settings,
+        )
+        repaired, still_missing = _align_screens_to_happy_path([step], _parse_json(raw).get("screens", []))
+        if not repaired or still_missing:
+            raise RuntimeError(f"The generator did not return the required screen '{name}'.")
+        generated[_screen_key(name)] = repaired[0]
+
+    return [generated[_screen_key(step.get("screen_name") or "Untitled screen")] for step in happy_path]
 
 
 async def run_export(agent_doc: dict, settings: dict, run_id: str, happy_path: list, wireframes: list, design_system: str = "standard", compliance_report: dict | None = None) -> dict:
