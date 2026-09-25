@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-export function FlowDiagram({ businessFlow, editable, onGenerate, generating }) {
+export function FlowDiagram({ businessFlow, editable, onGenerate, generating, generationError }) {
   const [steps, setSteps] = useState([]);
 
   useEffect(() => {
@@ -68,6 +68,13 @@ export function FlowDiagram({ businessFlow, editable, onGenerate, generating }) 
             {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Hammer className="w-3.5 h-3.5" />}
             {generating ? "Generating..." : "Generate Wireframes"}
           </Button>
+        </div>
+      )}
+      {generationError && (
+        <div className="mb-4 border border-destructive/50 bg-destructive/5 p-2.5 text-[11px] text-destructive" data-testid="wireframe-generation-error">
+          <p className="font-semibold uppercase tracking-wide text-[10px]">Wireframe generation did not start</p>
+          <p className="mt-1">{generationError}</p>
+          <p className="mt-1 text-muted-foreground">You can revise the happy path and retry when the required Gov design package is available.</p>
         </div>
       )}
 

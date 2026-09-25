@@ -1,4 +1,5 @@
 import asyncio
+import html
 import io
 import json
 import logging
@@ -10,7 +11,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form
-from fastapi.responses import StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from typing import Literal
@@ -312,6 +313,29 @@ class HappyPathUpdate(BaseModel):
     happy_path: list[dict]
 
 
+def _preview_screen_html(screen_html: str) -> str:
+    frontend_base = os.environ.get("LOCAL_FRONTEND_BASE_URL", "http://127.0.0.1:3000").rstrip("/")
+    return screen_html.replace('="/design-systems/', f'="{frontend_base}/design-systems/')
+
+
+@api_router.get("/runs/{run_id}/preview-all", response_class=HTMLResponse)
+async def preview_all_wireframes(run_id: str):
+    doc = await db.runs.find_one({"id": run_id}, {"_id": 0, "wireframes": 1})
+    screens = (doc or {}).get("wireframes") or []
+    if not screens:
+        raise HTTPException(status_code=404, detail="No generated wireframes are available")
+    frames = []
+    for index, screen in enumerate(screens, start=1):
+        name = html.escape(screen.get("screen_name") or f"Screen {index}")
+        source = html.escape(_preview_screen_html(screen.get("html") or ""), quote=True)
+        frames.append(f'<section><h2>{index}. {name}</h2><div class="viewport"><iframe title="{name}" sandbox="allow-scripts" srcdoc="{source}"></iframe></div></section>')
+    return HTMLResponse(
+        "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>"
+        "<title>UX Orchestrator - Responsive Wireframes</title><style>body{margin:0;background:#eef1f4;color:#17212b;font-family:Arial,sans-serif}header{position:sticky;top:0;background:#12263a;color:white;padding:16px 24px;z-index:2;display:flex;gap:16px;align-items:center;flex-wrap:wrap}.controls{display:flex;gap:8px}.controls button{background:#fff;border:0;padding:7px 10px;cursor:pointer}.controls button.active{background:#00e5ff}main{padding:24px;display:grid;gap:24px}section{background:white;border:1px solid #ccd5dd;box-shadow:0 2px 8px #0001;overflow:auto}h2{margin:0;padding:12px 16px;font-size:16px}.viewport{width:100%;min-width:390px;margin:auto;transition:width .2s}.viewport.tablet{width:768px}.viewport.mobile{width:390px}iframe{display:block;width:100%;height:820px;border:0;border-top:1px solid #ccd5dd;background:white}</style></head>"
+        f"<body><header><strong>UX Orchestrator</strong> - All generated screens <span>Responsive viewport:</span><div class='controls'><button class='active' data-mode='desktop'>Desktop</button><button data-mode='tablet'>Tablet (768px)</button><button data-mode='mobile'>Mobile (390px)</button></div></header><main>{''.join(frames)}</main><script>document.querySelectorAll('.controls button').forEach(b=>b.onclick=()=>{{document.querySelectorAll('.controls button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.viewport').forEach(x=>x.className='viewport '+(b.dataset.mode==='desktop'?'':b.dataset.mode));}})</script></body></html>"
+    )
+
+
 @api_router.put("/runs/{run_id}/happy-path")
 async def update_happy_path(run_id: str, payload: HappyPathUpdate):
     doc = await db.runs.find_one({"id": run_id}, {"_id": 0})
@@ -419,7 +443,16 @@ async def list_agents():
     # Existing installations can predate newly introduced built-in stages.
     # Reconcile missing records on inventory load without overwriting user edits.
     await seed_data.seed_if_empty(db)
-    return await db.agents.find({}, {"_id": 0}).sort("name", 1).to_list(1000)
+    agents = await db.agents.find({}, {"_id": 0}).to_list(1000)
+    order = {name: index for index, name in enumerate(seed_data.BUILTIN_AGENT_ORDER)}
+    return sorted(
+        agents,
+        key=lambda agent: (
+            0 if agent.get("name") in order else 1,
+            order.get(agent.get("name"), 10_000),
+            agent.get("name", ""),
+        ),
+    )
 
 
 class AgentCreate(BaseModel):

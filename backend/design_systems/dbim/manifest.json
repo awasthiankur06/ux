@@ -2,9 +2,10 @@
   "id": "dbim_gov",
   "name": "Government of India DBIM",
   "version": "DBIM Toolkit compiled package (downloaded 2026-09-25)",
-  "approved_for_generation": false,
+  "approved_for_generation": true,
+  "generation_scope": "controlled_text_first",
   "source": "https://dbimtoolkit.digifootprint.gov.in/",
-  "license_review_status": "official compiled package is present; component and visual-asset catalogue is incomplete, so generation remains disabled",
+  "license_review_status": "controlled text-first generation is enabled using the official compiled package, documented core components and internal semantic fallbacks. Visual asset reuse remains incomplete and must use visible placeholders/manual review.",
   "assets": {
     "stylesheets": ["/design-systems/dbim/Compiled/css/compiled.min.css"],
     "scripts": ["/design-systems/dbim/Compiled/js/compiled.bundle.min.js"],

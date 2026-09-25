@@ -139,8 +139,18 @@ async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happ
         "dbim_manifest": profile["manifest"],
         "dbim_components": profile["components"],
         "dbim_patterns": profile["patterns"],
+        "controlled_fallback_patterns": profile["fallback_patterns"],
     })
-    raw = await run_llm_agent(agent_doc["system_prompt"], provider, model, user, f"{run_id}-dbim-wireframe", settings)
+    runtime_policy = (
+        "\n\nRuntime policy: The supplied controlled_fallback_patterns are internal semantic fallbacks, not DBIM "
+        "components. Use one only when no approved DBIM component fits. Use local-only implementation, add its "
+        "data-gov-fallback-id to HTML, return its ID in fallback_ids, and list the required manual review. Never "
+        "invent a fallback or represent it as an official DBIM component."
+        " If an official ministry/department logo, icon or image is needed but not supplied in the local asset "
+        "manifest, render a visible text placeholder marked data-gov-asset-placeholder with a descriptive value "
+        "such as department-logo or official-image-required. Do not invent an asset or use an external URL."
+    )
+    raw = await run_llm_agent(agent_doc["system_prompt"] + runtime_policy, provider, model, user, f"{run_id}-dbim-wireframe", settings)
     return _parse_json(raw).get("screens", [])
 
 

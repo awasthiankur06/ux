@@ -1,0 +1,16 @@
+{
+  "profile": "gigw_3_dbim",
+  "classification": "Controlled semantic fallbacks. These are internal patterns informed by GIGW/DBIM principles, not official DBIM components.",
+  "policy": "Use a fallback only when no approved DBIM component matches the requested need. Use local HTML/CSS/JS only, declare the fallback ID in output and mark it for manual review. Never represent a fallback as an official DBIM component.",
+  "patterns": [
+    {"id":"gov.fallback.form","purpose":"Data-entry form with labels, required indicators, error summary and inline errors.","required_semantics":["form","label","input/select/textarea","button"],"manual_review":["keyboard operation","error messaging","privacy/data collection"]},
+    {"id":"gov.fallback.table","purpose":"Responsive data table with caption, header cells and an accessible empty state.","required_semantics":["table","caption","thead","th scope"],"manual_review":["mobile overflow","data accuracy"]},
+    {"id":"gov.fallback.search-results","purpose":"Search/filter results list when a documented DBIM sample does not fit.","required_semantics":["form role=search","label","section","heading"],"manual_review":["result relevance","filter keyboard behaviour"]},
+    {"id":"gov.fallback.status-message","purpose":"Success, warning, error or informational feedback.","required_semantics":["role=status or role=alert","heading or accessible label"],"manual_review":["message timing","colour-independent meaning"]},
+    {"id":"gov.fallback.empty-state","purpose":"No-results or no-data state with clear next action.","required_semantics":["section","heading","button or link when action is available"],"manual_review":["content clarity"]},
+    {"id":"gov.fallback.loading-state","purpose":"Loading/progress feedback.","required_semantics":["aria-busy","role=status","accessible loading text"],"manual_review":["announcement timing","timeout behaviour"]},
+    {"id":"gov.fallback.dialog","purpose":"Confirmation or focused modal dialog.","required_semantics":["role=dialog","aria-modal","aria-labelledby"],"manual_review":["focus trap","escape behaviour","focus restoration"]},
+    {"id":"gov.fallback.file-upload","purpose":"Document upload field with format/size/help/error information.","required_semantics":["label","input type=file","help text","error text"],"manual_review":["accessible document policy","virus scanning","privacy"]},
+    {"id":"gov.fallback.dashboard-summary","purpose":"Summary metrics/status layout where no DBIM sample directly fits.","required_semantics":["section","heading","dl or table for metrics"],"manual_review":["data freshness","colour contrast","screen-reader reading order"]}
+  ]
+}

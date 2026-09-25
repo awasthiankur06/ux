@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, RotateCw, Lock, MousePointerClick } from "lucide-react";
+import { ChevronLeft, ChevronRight, RotateCw, Lock, MousePointerClick, ExternalLink } from "lucide-react";
+import { allWireframesPreviewUrl } from "@/lib/api";
 
 const COMMENT_SCRIPT = `
 <script>
@@ -35,7 +36,7 @@ function injectCommentScript(html) {
   return html + COMMENT_SCRIPT;
 }
 
-export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, setCommentMode, onElementSelected }) {
+export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, setCommentMode, onElementSelected, runId }) {
   const iframeRef = useRef(null);
   const idx = Math.min(activeIdx, Math.max(0, (wireframes?.length || 1) - 1));
 
@@ -64,6 +65,11 @@ export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, 
   }
 
   const current = wireframes[idx];
+
+  const openAllInNewTab = () => {
+    if (!runId) return;
+    window.open(allWireframesPreviewUrl(runId), "_blank", "noopener,noreferrer");
+  };
 
   return (
     <div className="h-full flex flex-col" data-testid="wire-preview">
@@ -107,6 +113,15 @@ export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, 
             }`}
           >
             <MousePointerClick className="w-3 h-3" /> Comment
+          </button>
+          <button
+            data-testid="open-all-wireframes-button"
+            onClick={openAllInNewTab}
+            disabled={!runId}
+            className="flex items-center gap-1 text-[10px] uppercase tracking-wide px-2 py-1 border shrink-0 text-muted-foreground border-border hover:text-white disabled:opacity-40"
+            title="Open all generated screens in a responsive preview tab"
+          >
+            <ExternalLink className="w-3 h-3" /> Open All
           </button>
         </div>
         <iframe

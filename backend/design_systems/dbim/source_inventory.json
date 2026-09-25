@@ -11,7 +11,7 @@
     "getting_started": ["introduction", "color-modes", "themes"],
     "templates": ["homepage", "directory", "list-based", "card-based", "content-based", "multimedia-pages"],
     "components": ["accordion", "alphabet-filter", "buttons", "breadcrumbs", "external-links", "icon-and-text", "pull-quote", "numbered-data", "schemes-and-services", "vacancy", "footer", "global-header", "inside-page-header", "map", "primary-menu", "secondary-menu", "multimedia-image-element", "multimedia-video-player", "mygov-panel", "pagination", "persona", "pm-quote", "social-media", "tiles-action"],
-    "implementation_status": "public component pages indexed; individual snippets need per-component extraction and reuse review before local storage",
+    "implementation_status": "All 3 Getting Started pages, 6 Template routes and 24 Component routes traversed on 2026-09-25. Detailed observed records are in design_library_inventory.json; individual snippets still need reuse review before local storage.",
     "verified_component_records": [
       {"slug":"accordion","url":"https://dbimtoolkit.digifootprint.gov.in/design-library?type=Components&slug=accordion","observed_at":"2026-09-25","description":"Text Accordion organises content into collapsible sections.","variants":["desktop","desktop-open-state","mobile","mobile-open-state","states"],"implementation":{"react":"visible public reference snippet","html":"tab available","dependencies_observed":["Bootstrap-compatible collapse attributes","material-symbols-outlined icon class"]},"accessibility_observed":["button type","aria-expanded","aria-controls"],"reuse_status":"public reference only; local reuse review pending"}
     ]
@@ -21,6 +21,10 @@
     "categories": ["functional-icons", "contextual-icons", "persona-illustrations", "banner-images", "pm-images", "logos"],
     "implementation_status": "dynamic asset catalogue; individual records and downloads are not yet captured",
     "prohibited_default": "Do not use the State Emblem as a generic placeholder."
+  },
+  "controlled_fallbacks": {
+    "file": "fallback_patterns.json",
+    "status": "internal semantic fallbacks for gaps in the public DBIM sample library; they are not represented as official DBIM components"
   },
   "excluded": ["login", "CMS administration", "approval and role management", "dashboard", "CCPS subscription/API", "credential-required content"]
 }

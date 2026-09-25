@@ -1,0 +1,42 @@
+{
+  "source": "https://dbimtoolkit.digifootprint.gov.in/design-library",
+  "extracted_at": "2026-09-25",
+  "scope": "Public Design Library only. This is an observed source inventory, not a local reuse approval.",
+  "getting_started": [
+    {"name":"Introduction","slug":"introduction","implementation_types":["HTML","SCSS","Node","PowerShell","Next.js"],"key_points":["mobile-first responsive setup","HTML5 doctype and viewport","compiled CSS and JS package","Sass compilation","Next.js Bootstrap/Popper setup"],"source_url":"https://dbimtoolkit.digifootprint.gov.in/design-library?type=&slug=introduction"},
+    {"name":"Color Modes","slug":"color-modes","implementation_types":["SCSS"],"key_points":["global colour variables","mode-specific visual appearance","default variables include deep-blue, bright-gray, rhythm, white and black"],"source_url":"https://dbimtoolkit.digifootprint.gov.in/design-library?type=&slug=color-modes"},
+    {"name":"Themes","slug":"themes","implementation_types":["SCSS"],"key_points":["light theme","dark theme","theme variables"],"source_url":"https://dbimtoolkit.digifootprint.gov.in/design-library?type=&slug=themes"}
+  ],
+  "templates": [
+    {"name":"Homepage","slug":"homepage"}, {"name":"Directory","slug":"directory"}, {"name":"List Based","slug":"list-based"}, {"name":"Card Based","slug":"card-based"}, {"name":"Content Based","slug":"content-based"}, {"name":"Multimedia Pages","slug":"multimedia-pages"}
+  ],
+  "template_observation": "All six public template routes were traversed. At extraction time their body content rendered as unlabeled visual preview elements, with no machine-readable snippet or semantic content exposed. They remain public reference-only pending visual/manual review.",
+  "components": [
+    {"name":"Accordion","slug":"accordion","purpose":"Collapsible sections to conserve screen space.","variants":["desktop","desktop open state","mobile","mobile open state","states"],"implementation_types":["React","HTML"],"observed_accessibility":["button","aria-expanded","aria-controls"],"snippet_status":"public reference snippet observed"},
+    {"name":"Alphabet Filter","slug":"alphabet-filter","purpose":"Alphabetical filtering for long lists.","variants":["types","states","specifications"],"implementation_types":["React","HTML"],"snippet_status":"public reference tab observed"},
+    {"name":"Buttons","slug":"buttons","purpose":"Triggers operations with different levels of emphasis.","variants":["types","sizes","states","specifications"],"implementation_types":["React","HTML"],"observed_accessibility":["aria-hidden on icon example","title","role=button"],"snippet_status":"public reference snippet observed"},
+    {"name":"Breadcrumbs","slug":"breadcrumbs","purpose":"Shows current location and supports hierarchy navigation.","variants":["types","specifications","up to six items described"],"implementation_types":["React","HTML"],"snippet_status":"public reference snippet observed"},
+    {"name":"External Links","slug":"external-links","purpose":"Cards linking to external webpages or resources.","variants":["desktop"],"implementation_types":["React","HTML"],"snippet_status":"public reference snippet observed"},
+    {"name":"Icon and Text","slug":"icon-and-text","purpose":"Icon-plus-text card pattern.","implementation_types":["React","HTML"],"snippet_status":"public route observed; delayed non-semantic preview at extraction"},
+    {"name":"Pull Quote","slug":"pull-quote","purpose":"Highlights impactful statements in cards.","variants":["desktop","mobile"],"implementation_types":["React","HTML"],"snippet_status":"public reference snippet observed"},
+    {"name":"Numbered Data","slug":"numbered-data","purpose":"Presents numerical data and statistics in cards.","variants":["desktop","mobile"],"implementation_types":["React","HTML"],"snippet_status":"public reference snippet observed"},
+    {"name":"Schemes and Services","slug":"schemes-and-services","purpose":"Flagship scheme/service cards with features, benefits and eligibility.","variants":["desktop","mobile"],"implementation_types":["React","HTML"],"snippet_status":"public reference snippet observed"},
+    {"name":"Vacancy","slug":"vacancy","purpose":"Vacancy/opportunity cards.","variants":["desktop"],"implementation_types":["React","HTML"],"snippet_status":"public reference snippet observed"},
+    {"name":"Footer","slug":"footer","purpose":"Global useful links, social links and disclaimer.","variants":["types","specifications","desktop","mobile"],"implementation_types":["React","HTML"],"observed_accessibility":["footer","role=contentinfo","aria-label"],"snippet_status":"public reference snippet observed"},
+    {"name":"Global Header","slug":"global-header","purpose":"State Emblem, ministry name, search, navigation, accessibility links and other logos/links.","variants":["type","specifications","desktop","mobile"],"implementation_types":["React","HTML"],"snippet_status":"public reference tab observed; do not use State Emblem as generic placeholder"},
+    {"name":"Inside Page Header","slug":"inside-page-header","purpose":"Section banner and secondary menu.","variants":["types","specifications","desktop with secondary menu"],"implementation_types":["React","HTML"],"snippet_status":"public reference tab observed"},
+    {"name":"Map","slug":"map","purpose":"Map component.","implementation_types":[],"snippet_status":"public route observed; content did not render during extraction; manual review required"},
+    {"name":"Primary Menu","slug":"primary-menu","purpose":"Primary navigation hub.","variants":["hamburger menu","states"],"implementation_types":["React","HTML"],"snippet_status":"public reference tab observed"},
+    {"name":"Secondary Menu","slug":"secondary-menu","purpose":"Contextual/subcategory navigation.","variants":["desktop"],"implementation_types":["React","HTML"],"snippet_status":"public reference snippet observed"},
+    {"name":"Multimedia Image Element","slug":"multimedia-image-element","purpose":"Integrates images into content.","variants":["desktop album"],"implementation_types":["React","HTML"],"snippet_status":"public reference snippet observed; image source must be approved locally"},
+    {"name":"Multimedia Video Player","slug":"multimedia-video-player","purpose":"Video playback section.","variants":["multimedia video player"],"implementation_types":["React","HTML"],"snippet_status":"public reference snippet observed; captions/transcripts need manual validation"},
+    {"name":"MyGOV Panel","slug":"mygov-panel","purpose":"Homepage access to MyGov activities.","variants":["types","states","specifications","default","closed"],"implementation_types":["React","HTML"],"snippet_status":"public reference tab observed"},
+    {"name":"Pagination","slug":"pagination","purpose":"Navigation through paginated content.","variants":["types","specifications","desktop","mobile"],"implementation_types":["React","HTML"],"observed_accessibility":["nav aria-label=Page navigation"],"snippet_status":"public reference snippet observed"},
+    {"name":"Persona","slug":"persona","purpose":"Persona illustrations for audience empathy.","variants":["persona"],"implementation_types":["React","HTML"],"snippet_status":"public reference tab observed; requires approved local persona asset"},
+    {"name":"PM Quote","slug":"pm-quote","purpose":"Displays notable PM statements.","variants":["PM quote"],"implementation_types":["React","HTML"],"snippet_status":"public reference tab observed; requires approved official content/image"},
+    {"name":"Social Media","slug":"social-media","purpose":"Homepage social-media section with navigable tabs.","variants":["types","specifications"],"implementation_types":["React","HTML"],"snippet_status":"public reference tab observed; live social content requires separate integration review"},
+    {"name":"Tiles Action","slug":"tiles-action","purpose":"Actionable cards/tiles.","variants":["card"],"implementation_types":["React","HTML"],"snippet_status":"public reference tab observed"}
+  ],
+  "component_source_url_pattern": "https://dbimtoolkit.digifootprint.gov.in/design-library?type=Components&slug={slug}",
+  "local_storage_policy": "Public snippets are retained as source references only until individual reuse, dependency and asset review is complete. No component is thereby approved for DBIM generation."
+}

@@ -20,7 +20,7 @@ export function OrchestratorLog({ run }) {
   const logs = run?.stage_log || [];
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed" data-testid="orchestrator-log">
+    <div className="shrink-0 p-4 font-mono text-[11px] leading-relaxed" data-testid="orchestrator-log">
       <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-3">// Super Agent Mission Log</p>
       {logs.length === 0 && (
         <pre className="text-muted-foreground text-[10px] leading-tight">{`

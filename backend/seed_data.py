@@ -113,10 +113,12 @@ DBIM_COMPONENT_GENERATOR_PROMPT = (
     "Use semantic HTML, accessible labels, keyboard-operable controls, meaningful alternative text, a "
     "valid document language, and logical heading order. Include local DBIM stylesheet/script references "
     "listed in the manifest. Preserve requirement IDs and report every DBIM component ID used. If a "
-    "needed component is unavailable, list it under unresolved_gaps rather than inventing one. Respond "
+    "needed component is unavailable, use only a supplied controlled semantic fallback. Mark it with "
+    "data-gov-fallback-id, report it in fallback_ids and add it to manual_review; never call it a DBIM "
+    "component. If no supplied fallback fits, list it under unresolved_gaps rather than inventing one. Respond "
     'with ONLY JSON: {"screens":[{"screen_name":"...","html":"<!DOCTYPE html>...",'
-    '"requirement_ids":["GOV-001"],"component_ids":["dbim...."],"asset_ids":["..."]}],'
-    '"unresolved_gaps":["..."]}. '
+    '"requirement_ids":["GOV-001"],"component_ids":["dbim...."],"fallback_ids":["gov.fallback...."],"asset_ids":["..."]}],'
+    '"unresolved_gaps":["..."],"manual_review":["..."]}. '
     "This is a design pre-check output, not an official compliance certificate."
 )
 
@@ -132,6 +134,21 @@ DEFAULT_AGENTS = [
     {"name": "GOV_COMPLIANCE_ANALYST", "description": "Builds a GIGW 3.0 / DBIM design pre-check brief for Gov Compliance runs.", "agent_type": "llm", "system_prompt": GOV_COMPLIANCE_ANALYST_PROMPT},
     {"name": "DBIM_COMPONENT_GENERATOR", "description": "Generates DBIM-constrained screens using approved local components and assets.", "agent_type": "llm", "system_prompt": DBIM_COMPONENT_GENERATOR_PROMPT},
     {"name": "DBIM_GIGW_VALIDATOR", "description": "Runs deterministic local DBIM/GIGW design pre-check rules against Gov-mode wireframes.", "agent_type": "tool", "system_prompt": ""},
+]
+
+# Inventory order mirrors the runtime story shown to users, not alphabetical order.
+BUILTIN_AGENT_ORDER = [
+    "SUPER_AGENT",
+    "SRS_ANALYZER",
+    "WEB_CRAWLER",
+    "BUSINESS_PROCESS_ANALYST",
+    "UX_CRITIQUE",
+    "GOV_COMPLIANCE_ANALYST",
+    "WIREFRAME_GENERATOR",
+    "DBIM_COMPONENT_GENERATOR",
+    "DBIM_GIGW_VALIDATOR",
+    "FEEDBACK_ROUTER",
+    "EXPORT_AGENT",
 ]
 
 DEFAULT_FLOW_NODES = [

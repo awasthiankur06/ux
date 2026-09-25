@@ -22,6 +22,7 @@ def get_profile() -> dict:
         "manifest": manifest,
         "components": catalogue.get("components", []),
         "patterns": _load("patterns.json").get("patterns", []),
+        "fallback_patterns": _load("fallback_patterns.json").get("patterns", []),
         "validation_rules": _load("validation_rules.json"),
     }
 
@@ -38,6 +39,7 @@ def validate_screens(screens: list[dict]) -> dict:
     manifest = profile["manifest"]
     rules = profile["validation_rules"]
     approved_ids = {component.get("id") for component in profile["components"]}
+    approved_fallback_ids = {pattern.get("id") for pattern in profile["fallback_patterns"]}
     findings = []
     rule_catalogue = {rule["id"]: rule for rule in rules.get("rules", [])}
 
@@ -91,6 +93,11 @@ def validate_screens(screens: list[dict]) -> dict:
                 findings.append({"severity": "error", "screen_name": name, "rule": "approved-component", "message": f"Unknown or unapproved DBIM component: {component_id}"})
             elif f'data-dbim-component-id="{component_id}"' not in html and f"data-dbim-component-id='{component_id}'" not in html:
                 findings.append({"severity": "warning", "screen_name": name, "rule": "component-traceability", "message": f"Component ID is declared but not marked in HTML: {component_id}"})
+        for fallback_id in screen.get("fallback_ids", []):
+            if fallback_id not in approved_fallback_ids:
+                findings.append({"severity": "error", "screen_name": name, "rule": "controlled-fallback", "message": f"Unknown controlled fallback: {fallback_id}"})
+            elif f'data-gov-fallback-id="{fallback_id}"' not in html and f"data-gov-fallback-id='{fallback_id}'" not in html:
+                findings.append({"severity": "warning", "screen_name": name, "rule": "fallback-traceability", "message": f"Fallback ID is declared but not marked in HTML: {fallback_id}"})
 
     for finding in findings:
         rule = rule_catalogue.get(finding["rule"])

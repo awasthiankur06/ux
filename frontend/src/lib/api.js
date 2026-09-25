@@ -24,6 +24,7 @@ export const uploadSrsFile = (file) => {
   return axios.post(`${API}/upload-srs`, form, { headers: { "Content-Type": "multipart/form-data" } }).then((r) => r.data);
 };
 export const downloadRunUrl = (runId) => `${API}/runs/${runId}/download`;
+export const allWireframesPreviewUrl = (runId) => `${API}/runs/${runId}/preview-all`;
 
 export const getAgents = () => axios.get(`${API}/agents`).then((r) => r.data);
 export const createAgent = (payload) => axios.post(`${API}/agents`, payload).then((r) => r.data);

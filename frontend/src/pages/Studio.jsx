@@ -41,7 +41,7 @@ export default function Studio() {
   const run = useRunPolling(runId, resumeKey, handleRunNotFound);
 
   useEffect(() => {
-    if (run?.status === "awaiting_review" && !generatingWireframes) setCenterTab("flow");
+    if (["awaiting_review", "error"].includes(run?.status) && !generatingWireframes && run?.business_flow) setCenterTab("flow");
   }, [run?.status]);
 
   useEffect(() => {
@@ -173,7 +173,7 @@ export default function Studio() {
       </div>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-border lg:overflow-hidden">
-        <div className="flex flex-col lg:overflow-hidden lg:col-span-1 min-h-[70vh] lg:min-h-0">
+        <div className="flex flex-col lg:overflow-y-auto lg:col-span-1 min-h-[70vh] lg:min-h-0">
           <InputPanel
             srsText={srsText}
             setSrsText={setSrsText}
@@ -210,14 +210,16 @@ export default function Studio() {
             <TabsContent value="flow" className="flex-1 lg:overflow-hidden m-0">
               <FlowDiagram
                 businessFlow={run?.business_flow}
-                editable={run?.status === "awaiting_review" && !generatingWireframes}
+                editable={["awaiting_review", "error"].includes(run?.status) && !generatingWireframes}
                 generating={generatingWireframes}
                 onGenerate={handleGenerateWireframes}
+                generationError={run?.error}
               />
             </TabsContent>
             <TabsContent value="render" className="flex-1 lg:overflow-hidden m-0">
               <WirePreview
                 wireframes={run?.wireframes}
+                runId={runId}
                 activeIdx={activeScreenIdx}
                 setActiveIdx={setActiveScreenIdx}
                 commentMode={commentMode}
