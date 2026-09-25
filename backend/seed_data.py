@@ -131,6 +131,7 @@ DEFAULT_AGENTS = [
     {"name": "EXPORT_AGENT", "description": "Converts approved wireframes into React + CSS + API spec + README.", "agent_type": "llm", "system_prompt": EXPORT_AGENT_PROMPT},
     {"name": "GOV_COMPLIANCE_ANALYST", "description": "Builds a GIGW 3.0 / DBIM design pre-check brief for Gov Compliance runs.", "agent_type": "llm", "system_prompt": GOV_COMPLIANCE_ANALYST_PROMPT},
     {"name": "DBIM_COMPONENT_GENERATOR", "description": "Generates DBIM-constrained screens using approved local components and assets.", "agent_type": "llm", "system_prompt": DBIM_COMPONENT_GENERATOR_PROMPT},
+    {"name": "DBIM_GIGW_VALIDATOR", "description": "Runs deterministic local DBIM/GIGW design pre-check rules against Gov-mode wireframes.", "agent_type": "tool", "system_prompt": ""},
 ]
 
 DEFAULT_FLOW_NODES = [

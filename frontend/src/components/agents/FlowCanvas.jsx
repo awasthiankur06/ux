@@ -33,20 +33,27 @@ function FixedNode({ data }) {
 const nodeTypes = { agentNode: AgentNode, fixedNode: FixedNode };
 
 const FIXED_NODES = [
-  { id: "fixed-super", type: "fixedNode", position: { x: -260, y: 130 }, data: { agent_name: "SUPER_AGENT", caption: "Entry point - always runs first" } },
-  { id: "fixed-wireframe", type: "fixedNode", position: { x: 720, y: 60 }, data: { agent_name: "WIREFRAME_GENERATOR", caption: "Triggered by 'Generate Wireframes'" } },
-  { id: "fixed-export", type: "fixedNode", position: { x: 1000, y: 60 }, data: { agent_name: "EXPORT_AGENT", caption: "Triggered by 'Finalize & Export'" } },
-  { id: "fixed-router", type: "fixedNode", position: { x: 720, y: 260 }, data: { agent_name: "FEEDBACK_ROUTER", caption: "Triggered by Feedback submissions" } },
+  { id: "fixed-super", type: "fixedNode", position: { x: -260, y: 160 }, data: { agent_name: "SUPER_AGENT", caption: "Entry point - always runs first" } },
+  { id: "fixed-wireframe", type: "fixedNode", position: { x: 720, y: 40 }, data: { agent_name: "WIREFRAME_GENERATOR", caption: "Standard UX: Generate Wireframes" } },
+  { id: "fixed-router", type: "fixedNode", position: { x: 1000, y: 40 }, data: { agent_name: "FEEDBACK_ROUTER", caption: "Standard UX: Feedback submissions" } },
+  { id: "fixed-gov-analyst", type: "fixedNode", position: { x: 720, y: 300 }, data: { agent_name: "GOV_COMPLIANCE_ANALYST", caption: "Gov mode: after editable flow" } },
+  { id: "fixed-dbi-generator", type: "fixedNode", position: { x: 1000, y: 300 }, data: { agent_name: "DBIM_COMPONENT_GENERATOR", caption: "Gov mode: Generate Wireframes" } },
+  { id: "fixed-dbi-validator", type: "fixedNode", position: { x: 1280, y: 300 }, data: { agent_name: "DBIM_GIGW_VALIDATOR", caption: "Gov mode: deterministic pre-check" } },
+  { id: "fixed-export", type: "fixedNode", position: { x: 1280, y: 40 }, data: { agent_name: "EXPORT_AGENT", caption: "Triggered by Finalize & Export" } },
 ];
 
 function fixedEdgesFor(editableNodeIds) {
   const edges = [
-    { id: "fe-wireframe-export", source: "fixed-wireframe", target: "fixed-export", style: { strokeDasharray: "4 4" } },
     { id: "fe-wireframe-router", source: "fixed-wireframe", target: "fixed-router", style: { strokeDasharray: "4 4" } },
+    { id: "fe-wireframe-export", source: "fixed-wireframe", target: "fixed-export", style: { strokeDasharray: "4 4" } },
+    { id: "fe-gov-generator", source: "fixed-gov-analyst", target: "fixed-dbi-generator", style: { strokeDasharray: "4 4" } },
+    { id: "fe-gov-validator", source: "fixed-dbi-generator", target: "fixed-dbi-validator", style: { strokeDasharray: "4 4" } },
+    { id: "fe-gov-export", source: "fixed-dbi-validator", target: "fixed-export", style: { strokeDasharray: "4 4" } },
   ];
   editableNodeIds.forEach((id, i) => {
     edges.push({ id: `fe-super-${i}`, source: "fixed-super", target: id, style: { strokeDasharray: "4 4" } });
     edges.push({ id: `fe-${id}-wireframe`, source: id, target: "fixed-wireframe", style: { strokeDasharray: "4 4" } });
+    edges.push({ id: `fe-${id}-gov`, source: id, target: "fixed-gov-analyst", style: { strokeDasharray: "4 4" } });
   });
   return edges;
 }
@@ -107,7 +114,7 @@ export function FlowCanvas() {
   };
 
   const usedNames = new Set(nodes.filter((n) => n.type === "agentNode").map((n) => n.data.agent_name));
-  const availableAgents = agentsList.filter((a) => !usedNames.has(a.name) && a.name !== "SUPER_AGENT" && a.name !== "FEEDBACK_ROUTER" && a.name !== "WIREFRAME_GENERATOR" && a.name !== "EXPORT_AGENT");
+  const availableAgents = agentsList.filter((a) => !usedNames.has(a.name) && !["SUPER_AGENT", "FEEDBACK_ROUTER", "WIREFRAME_GENERATOR", "EXPORT_AGENT", "GOV_COMPLIANCE_ANALYST", "DBIM_COMPONENT_GENERATOR", "DBIM_GIGW_VALIDATOR"].includes(a.name));
 
   return (
     <div className="h-full flex flex-col" data-testid="flow-canvas">
@@ -141,8 +148,7 @@ export function FlowCanvas() {
         </ReactFlow>
       </div>
       <p className="text-[10px] text-muted-foreground p-2 border-t border-border shrink-0">
-        Solid nodes are the editable pre-checkpoint orchestration (double-click to cycle condition, right-click to delete, drag to connect).
-        Dashed nodes show the full 8-agent pipeline for context (entry point + action-triggered stages) and aren't part of the saved graph.
+        Solid nodes are the editable discovery flow (double-click to cycle condition, right-click to delete, drag to connect). Dashed nodes are fixed runtime stages: the upper route is Standard UX; the lower route runs only when Gov Compliance - Design Pre-check is selected. Fixed nodes are not part of the saved graph.
       </p>
     </div>
   );

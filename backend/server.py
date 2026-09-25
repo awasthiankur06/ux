@@ -416,7 +416,10 @@ async def submit_feedback(
 
 @api_router.get("/agents")
 async def list_agents():
-    return await db.agents.find({}, {"_id": 0}).to_list(1000)
+    # Existing installations can predate newly introduced built-in stages.
+    # Reconcile missing records on inventory load without overwriting user edits.
+    await seed_data.seed_if_empty(db)
+    return await db.agents.find({}, {"_id": 0}).sort("name", 1).to_list(1000)
 
 
 class AgentCreate(BaseModel):
