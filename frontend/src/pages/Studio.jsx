@@ -225,6 +225,7 @@ export default function Studio() {
                 commentMode={commentMode}
                 setCommentMode={setCommentMode}
                 onElementSelected={handleElementSelected}
+                designSystem={run?.input?.design_system}
               />
             </TabsContent>
           </Tabs>

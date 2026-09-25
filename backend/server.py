@@ -313,21 +313,34 @@ class HappyPathUpdate(BaseModel):
     happy_path: list[dict]
 
 
-def _preview_screen_html(screen_html: str) -> str:
+def _preview_screen_html(screen_html: str, design_system: str = "standard") -> str:
     frontend_base = os.environ.get("LOCAL_FRONTEND_BASE_URL", "http://127.0.0.1:3000").rstrip("/")
-    return screen_html.replace('="/design-systems/', f'="{frontend_base}/design-systems/')
+    prepared = screen_html.replace('="/design-systems/', f'="{frontend_base}/design-systems/')
+    if design_system != "dbim_gov":
+        return prepared
+    stylesheet = "/design-systems/dbim/Compiled/css/compiled.min.css"
+    script = "/design-systems/dbim/Compiled/js/compiled.bundle.min.js"
+    assets = ""
+    if stylesheet not in prepared:
+        assets += f'<link rel="stylesheet" href="{frontend_base}{stylesheet}">'
+    if script not in prepared:
+        assets += f'<script src="{frontend_base}{script}"></script>'
+    if not assets:
+        return prepared
+    return prepared.replace("</head>", f"{assets}</head>") if "</head>" in prepared else f"<head>{assets}</head>{prepared}"
 
 
 @api_router.get("/runs/{run_id}/preview-all", response_class=HTMLResponse)
 async def preview_all_wireframes(run_id: str):
-    doc = await db.runs.find_one({"id": run_id}, {"_id": 0, "wireframes": 1})
+    doc = await db.runs.find_one({"id": run_id}, {"_id": 0, "wireframes": 1, "input.design_system": 1})
     screens = (doc or {}).get("wireframes") or []
+    design_system = ((doc or {}).get("input") or {}).get("design_system", "standard")
     if not screens:
         raise HTTPException(status_code=404, detail="No generated wireframes are available")
     frames = []
     for index, screen in enumerate(screens, start=1):
         name = html.escape(screen.get("screen_name") or f"Screen {index}")
-        source = html.escape(_preview_screen_html(screen.get("html") or ""), quote=True)
+        source = html.escape(_preview_screen_html(screen.get("html") or "", design_system), quote=True)
         frames.append(f'<section><h2>{index}. {name}</h2><div class="viewport"><iframe title="{name}" sandbox="allow-scripts" srcdoc="{source}"></iframe></div></section>')
     return HTMLResponse(
         "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>"

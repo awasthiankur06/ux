@@ -30,20 +30,26 @@ const COMMENT_SCRIPT = `
 })();
 </script>`;
 
-function injectCommentScript(html) {
+const DBIM_STYLESHEET = "/design-systems/dbim/Compiled/css/compiled.min.css";
+const DBIM_SCRIPT = "/design-systems/dbim/Compiled/js/compiled.bundle.min.js";
+
+function injectCommentScript(html, designSystem) {
   if (!html) return html;
   // srcDoc has an about:srcdoc base URL. Make local DBIM package references point
   // to the frontend that is currently serving Studio, not to the API/preview page.
   const frontendBase = window.location.origin;
   let prepared = html.replace(/(["'])\/design-systems\//g, `$1${frontendBase}/design-systems/`);
   const baseTag = `<base href="${frontendBase}/">`;
-  if (prepared.includes("</head>")) prepared = prepared.replace("</head>", baseTag + "</head>");
-  else prepared = baseTag + prepared;
+  const dbimAssets = designSystem === "dbim_gov"
+    ? `${prepared.includes(DBIM_STYLESHEET) ? "" : `<link rel="stylesheet" href="${frontendBase}${DBIM_STYLESHEET}">`}${prepared.includes(DBIM_SCRIPT) ? "" : `<script src="${frontendBase}${DBIM_SCRIPT}"></script>`}`
+    : "";
+  if (prepared.includes("</head>")) prepared = prepared.replace("</head>", baseTag + dbimAssets + "</head>");
+  else prepared = `<head>${baseTag}${dbimAssets}</head>` + prepared;
   if (prepared.includes("</body>")) return prepared.replace("</body>", COMMENT_SCRIPT + "</body>");
   return prepared + COMMENT_SCRIPT;
 }
 
-export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, setCommentMode, onElementSelected, runId }) {
+export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, setCommentMode, onElementSelected, runId, designSystem }) {
   const iframeRef = useRef(null);
   const idx = Math.min(activeIdx, Math.max(0, (wireframes?.length || 1) - 1));
 
@@ -135,7 +141,7 @@ export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, 
           ref={iframeRef}
           data-testid="wireframe-iframe"
           title={current.screen_name}
-          srcDoc={injectCommentScript(current.html)}
+          srcDoc={injectCommentScript(current.html, designSystem)}
           onLoad={sendCommentMode}
           className="flex-1 w-full border border-border bg-white min-h-0"
           sandbox="allow-scripts"
