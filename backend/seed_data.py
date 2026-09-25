@@ -115,7 +115,9 @@ DBIM_COMPONENT_GENERATOR_PROMPT = (
     "listed in the manifest. Preserve requirement IDs and report every DBIM component ID used. If a "
     "needed component is unavailable, use only a supplied controlled semantic fallback. Mark it with "
     "data-gov-fallback-id, report it in fallback_ids and add it to manual_review; never call it a DBIM "
-    "component. If no supplied fallback fits, list it under unresolved_gaps rather than inventing one. Respond "
+    "component. If no supplied fallback fits, list it under unresolved_gaps rather than inventing one. Never render "
+    "prompt instructions, approval/review messages or implementation placeholders as visible citizen-facing copy; keep "
+    "those details in metadata/manual_review only. Respond "
     'with ONLY JSON: {"screens":[{"screen_name":"...","html":"<!DOCTYPE html>...",'
     '"requirement_ids":["GOV-001"],"component_ids":["dbim...."],"fallback_ids":["gov.fallback...."],"asset_ids":["..."]}],'
     '"unresolved_gaps":["..."],"manual_review":["..."]}. '

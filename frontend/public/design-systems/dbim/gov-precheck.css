@@ -1,0 +1,30 @@
+/*
+ * Gov Compliance — Design Pre-check visual layer.
+ * Uses only variables and utilities from the locally packaged DBIM/Bootstrap build.
+ * It is a governed presentation aid, not an official DBIM asset library.
+ */
+:root {
+  --gov-surface: var(--bs-body-bg);
+  --gov-muted-surface: var(--bs-tertiary-bg);
+  --gov-border: var(--bs-border-color);
+}
+
+.gov-page { min-height: 100vh; background: var(--gov-muted-surface); color: var(--bs-body-color); }
+.gov-skip-link { position: absolute; left: .75rem; top: -4rem; z-index: 1100; }
+.gov-skip-link:focus { top: .75rem; }
+.gov-site-header { background: var(--gov-surface); border-bottom: 1px solid var(--gov-border); }
+.gov-brand-placeholder { display: inline-flex; align-items: center; gap: .5rem; font-weight: 700; text-decoration: none; color: var(--bs-emphasis-color); }
+.gov-brand-placeholder::before { content: "GOI"; display: inline-grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: .375rem; color: var(--bs-primary); border: 1px solid currentColor; font-size: .75rem; }
+.gov-primary-nav { background: var(--bs-primary); }
+.gov-primary-nav .nav-link { color: var(--bs-white); font-weight: 600; border-radius: .25rem; }
+.gov-primary-nav .nav-link:hover, .gov-primary-nav .nav-link:focus { color: var(--bs-primary); background: var(--bs-white); }
+.gov-content-card { background: var(--gov-surface); border: 1px solid var(--gov-border); border-radius: .75rem; box-shadow: var(--bs-box-shadow-sm); }
+.gov-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 1rem; border-bottom: 1px solid var(--gov-border); padding-bottom: .75rem; margin-bottom: 1.5rem; }
+.gov-service-card { height: 100%; background: var(--gov-surface); border: 1px solid var(--gov-border); border-radius: .75rem; box-shadow: var(--bs-box-shadow-sm); transition: transform .2s ease, box-shadow .2s ease; }
+.gov-service-card:hover { transform: translateY(-2px); box-shadow: var(--bs-box-shadow); }
+.gov-image-placeholder { min-height: 12rem; display: block; padding: 1.5rem; border: 1px dashed var(--bs-primary-border-subtle); border-radius: .75rem; background: var(--bs-primary-bg-subtle); }
+.gov-stat { background: var(--gov-surface); border-left: .25rem solid var(--bs-primary); border-radius: .5rem; box-shadow: var(--bs-box-shadow-sm); }
+.gov-site-footer { background: var(--bs-dark); color: var(--bs-light); }
+.gov-site-footer a { color: var(--bs-light); }
+.gov-site-footer a:hover, .gov-site-footer a:focus { color: var(--bs-white); }
+@media (max-width: 767.98px) { .gov-primary-nav .nav { overflow-x: auto; flex-wrap: nowrap; } .gov-section-heading { align-items: start; flex-direction: column; } }

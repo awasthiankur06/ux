@@ -57,6 +57,12 @@ def validate_screens(screens: list[dict]) -> dict:
         for marker in rules["prohibited_markers"]:
             if marker in lower_html:
                 findings.append({"severity": "error", "screen_name": name, "rule": "prohibited-dependency", "message": f"Prohibited dependency: {marker}"})
+        inline_colour = re.search(r"\bstyle\s*=\s*([\"'])[^\"']*(?:color\s*:|background(?:-color)?\s*:|border-color\s*:)", html, re.I)
+        style_block_colour = re.search(r"<style\b[^>]*>.*?(?:color\s*:|background(?:-color)?\s*:|border-color\s*:)", html, re.I | re.S)
+        if inline_colour or style_block_colour:
+            findings.append({"severity": "error", "screen_name": name, "rule": "dbim-colour-token", "message": "Use local DBIM/Bootstrap semantic colour classes instead of custom inline or embedded colour styling."})
+        if re.search(r"awaiting\s+(?:branding|approval|confirmation)|official\s+image\s+required|manual\s+review|\bplaceholder\b", re.sub(r"<[^>]+>", " ", html), re.I):
+            findings.append({"severity": "error", "screen_name": name, "rule": "citizen-copy", "message": "Implementation, approval or placeholder instructions must not appear in citizen-facing screen copy."})
         if not re.search(r"<!doctype\s+html", html, re.I):
             findings.append({"severity": "warning", "screen_name": name, "rule": "html5-doctype", "message": "HTML5 doctype is missing."})
         if not re.search(r"<html[^>]*\blang=[\"'][^\"']+[\"']", html, re.I):
@@ -93,6 +99,10 @@ def validate_screens(screens: list[dict]) -> dict:
                 findings.append({"severity": "error", "screen_name": name, "rule": "approved-component", "message": f"Unknown or unapproved DBIM component: {component_id}"})
             elif f'data-dbim-component-id="{component_id}"' not in html and f"data-dbim-component-id='{component_id}'" not in html:
                 findings.append({"severity": "warning", "screen_name": name, "rule": "component-traceability", "message": f"Component ID is declared but not marked in HTML: {component_id}"})
+        required_shell = ("dbim.header.global", "dbim.navigation.primary", "dbim.footer.standard")
+        missing_shell = [component_id for component_id in required_shell if f'data-dbim-component-id="{component_id}"' not in html and f"data-dbim-component-id='{component_id}'" not in html]
+        if missing_shell:
+            findings.append({"severity": "error", "screen_name": name, "rule": "dbim-page-shell", "message": f"Required DBIM page shell is incomplete: {', '.join(missing_shell)}"})
         for fallback_id in screen.get("fallback_ids", []):
             if fallback_id not in approved_fallback_ids:
                 findings.append({"severity": "error", "screen_name": name, "rule": "controlled-fallback", "message": f"Unknown controlled fallback: {fallback_id}"})

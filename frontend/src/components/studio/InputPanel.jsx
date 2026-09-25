@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -6,10 +6,12 @@ import { Upload, Zap, Palette } from "lucide-react";
 
 export function InputPanel({
   srsText, setSrsText, url, setUrl, crawlDepth, setCrawlDepth, onSubmit, loading, onFileSelect,
-  brandFileName, onBrandFileSelect, designSystem, setDesignSystem,
+  brandFileName, onBrandFileSelect, designSystem, setDesignSystem, govAssets = [], onGovAssetSelect,
 }) {
   const fileRef = useRef(null);
   const brandFileRef = useRef(null);
+  const govAssetRef = useRef(null);
+  const [pendingGovAssetType, setPendingGovAssetType] = useState(null);
 
   return (
     <div className="p-4 border-b border-border space-y-4" data-testid="input-panel">
@@ -99,6 +101,18 @@ export function InputPanel({
           </label>
         </div>
       </div>
+
+      {designSystem === "dbim_gov" && <div className="border border-border p-3 space-y-2" data-testid="gov-asset-upload-panel">
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">04 // Approved Gov Assets (Optional)</p>
+        <p className="text-[10px] text-muted-foreground">User-provided assets are marked for compliance review. The State Emblem is never placed automatically.</p>
+        <input ref={govAssetRef} type="file" accept=".png,.jpg,.jpeg,.webp,.svg" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file && pendingGovAssetType) onGovAssetSelect?.(pendingGovAssetType, file); e.target.value = ""; }} />
+        {[['department_logo', 'Upload Department Logo'], ['header_visual', 'Upload Header Visual'], ['state_emblem', 'Upload State Emblem']].map(([assetType, label]) => {
+          const asset = govAssets.find((item) => item.asset_type === assetType);
+          return <button key={assetType} type="button" onClick={() => { setPendingGovAssetType(assetType); govAssetRef.current?.click(); }} className="block w-full text-left text-[10px] uppercase tracking-wide text-secondary hover:text-white">
+            {asset ? `${label}: ${asset.filename}` : label}
+          </button>;
+        })}
+      </div>}
 
       <Button
         data-testid="initialize-orchestrator-button"

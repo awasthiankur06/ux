@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, RotateCw, Lock, MousePointerClick, ExternalLink } from "lucide-react";
-import { allWireframesPreviewUrl } from "@/lib/api";
+import { API, allWireframesPreviewUrl } from "@/lib/api";
 
 const COMMENT_SCRIPT = `
 <script>
@@ -30,7 +30,11 @@ const COMMENT_SCRIPT = `
 })();
 </script>`;
 
-const DBIM_STYLESHEET = "/design-systems/dbim/Compiled/css/compiled.min.css";
+const DBIM_STYLESHEETS = [
+  "/design-systems/dbim/Compiled/css/compiled.min.css",
+  "/design-systems/dbim/gov-precheck.css",
+];
+const BOOTSTRAP_ICONS_STYLESHEET = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css";
 const DBIM_SCRIPT = "/design-systems/dbim/Compiled/js/compiled.bundle.min.js";
 
 function injectCommentScript(html, designSystem) {
@@ -38,10 +42,13 @@ function injectCommentScript(html, designSystem) {
   // srcDoc has an about:srcdoc base URL. Make local DBIM package references point
   // to the frontend that is currently serving Studio, not to the API/preview page.
   const frontendBase = window.location.origin;
-  let prepared = html.replace(/(["'])\/design-systems\//g, `$1${frontendBase}/design-systems/`);
+  const backendBase = API.replace(/\/api$/, "");
+  let prepared = html
+    .replace(/(["'])\/design-systems\//g, `$1${frontendBase}/design-systems/`)
+    .replace(/(["'])\/gov-assets\//g, `$1${backendBase}/gov-assets/`);
   const baseTag = `<base href="${frontendBase}/">`;
   const dbimAssets = designSystem === "dbim_gov"
-    ? `${prepared.includes(DBIM_STYLESHEET) ? "" : `<link rel="stylesheet" href="${frontendBase}${DBIM_STYLESHEET}">`}${prepared.includes(DBIM_SCRIPT) ? "" : `<script src="${frontendBase}${DBIM_SCRIPT}"></script>`}`
+    ? `${DBIM_STYLESHEETS.map((stylesheet) => prepared.includes(stylesheet) ? "" : `<link rel="stylesheet" href="${frontendBase}${stylesheet}">`).join("")}${prepared.includes(BOOTSTRAP_ICONS_STYLESHEET) ? "" : `<link rel="stylesheet" href="${BOOTSTRAP_ICONS_STYLESHEET}">`}${prepared.includes(DBIM_SCRIPT) ? "" : `<script src="${frontendBase}${DBIM_SCRIPT}"></script>`}`
     : "";
   if (prepared.includes("</head>")) prepared = prepared.replace("</head>", baseTag + dbimAssets + "</head>");
   else prepared = `<head>${baseTag}${dbimAssets}</head>` + prepared;

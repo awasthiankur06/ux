@@ -7,11 +7,18 @@
   "source": "https://dbimtoolkit.digifootprint.gov.in/",
   "license_review_status": "controlled text-first generation is enabled using the official compiled package, documented core components and internal semantic fallbacks. Visual asset reuse remains incomplete and must use visible placeholders/manual review.",
   "assets": {
-    "stylesheets": ["/design-systems/dbim/Compiled/css/compiled.min.css"],
+    "stylesheets": ["/design-systems/dbim/Compiled/css/compiled.min.css", "/design-systems/dbim/gov-precheck.css"],
     "scripts": ["/design-systems/dbim/Compiled/js/compiled.bundle.min.js"],
     "fonts": [],
     "images": [],
     "icons": []
+  },
+  "temporary_external_exception": {
+    "name": "Bootstrap Icons",
+    "stylesheet": "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css",
+    "purpose": "Temporary icon support while the approved DBIM icon package is not locally installed.",
+    "restriction": "Gov output may use only Bootstrap Icons bi-* classes from this URL. Replace with approved local DBIM icons when available.",
+    "manual_review_required": true
   },
   "placeholder_branding": {
     "id": "gov-neutral-placeholder",

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { createRun, uploadSrsFile, updateHappyPath, generateWireframes } from "@/lib/api";
+import { createRun, uploadSrsFile, uploadGovAsset, updateHappyPath, generateWireframes } from "@/lib/api";
 import { useRunPolling } from "@/hooks/useRunPolling";
 import { InputPanel } from "@/components/studio/InputPanel";
 import { OrchestratorLog } from "@/components/studio/OrchestratorLog";
@@ -25,6 +25,7 @@ export default function Studio() {
   const [designSystem, setDesignSystem] = useState("standard");
   const [brandReference, setBrandReference] = useState(null);
   const [brandFileName, setBrandFileName] = useState(null);
+  const [govAssets, setGovAssets] = useState([]);
   const [runId, setRunId] = useState(paramRunId || null);
   const [resumeKey, setResumeKey] = useState(0);
   const [centerTab, setCenterTab] = useState("render");
@@ -69,6 +70,16 @@ export default function Studio() {
     }
   };
 
+  const handleGovAssetSelect = async (assetType, file) => {
+    try {
+      const asset = await uploadGovAsset(assetType, file);
+      setGovAssets((current) => [...current.filter((item) => item.asset_type !== assetType), asset]);
+      toast.success(`${asset.filename} added for Gov review`);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Failed to upload government asset");
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       const { run_id } = await createRun({
@@ -77,6 +88,7 @@ export default function Studio() {
         crawl_depth: crawlDepth,
         brand_reference: brandReference,
         design_system: designSystem,
+        gov_assets: govAssets,
       });
       setRunId(run_id);
       setCenterTab("render");
@@ -123,6 +135,7 @@ export default function Studio() {
     setDesignSystem("standard");
     setBrandReference(null);
     setBrandFileName(null);
+    setGovAssets([]);
     setGeneratingWireframes(false);
     setCenterTab("render");
     setActiveScreenIdx(0);
@@ -188,6 +201,8 @@ export default function Studio() {
             onFileSelect={handleFileSelect}
             brandFileName={brandFileName}
             onBrandFileSelect={handleBrandFileSelect}
+            govAssets={govAssets}
+            onGovAssetSelect={handleGovAssetSelect}
           />
           {run && (
             <div className="px-4 pt-3">
@@ -251,7 +266,7 @@ export default function Studio() {
               <UxRatingReport uxRating={run?.ux_rating} />
             </TabsContent>
             <TabsContent value="compliance" className="flex-1 lg:overflow-hidden m-0">
-              <ComplianceReport report={run?.compliance_report} designSystem={run?.input?.design_system} />
+              <ComplianceReport report={run?.compliance_report} designSystem={run?.input?.design_system} govAssets={run?.input?.gov_assets} />
             </TabsContent>
             <TabsContent value="feedback" className="flex-1 lg:overflow-hidden m-0">
               <FeedbackPanel

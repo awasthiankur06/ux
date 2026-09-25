@@ -11,6 +11,7 @@
     {"id":"gov.fallback.loading-state","purpose":"Loading/progress feedback.","required_semantics":["aria-busy","role=status","accessible loading text"],"manual_review":["announcement timing","timeout behaviour"]},
     {"id":"gov.fallback.dialog","purpose":"Confirmation or focused modal dialog.","required_semantics":["role=dialog","aria-modal","aria-labelledby"],"manual_review":["focus trap","escape behaviour","focus restoration"]},
     {"id":"gov.fallback.file-upload","purpose":"Document upload field with format/size/help/error information.","required_semantics":["label","input type=file","help text","error text"],"manual_review":["accessible document policy","virus scanning","privacy"]},
+    {"id":"gov.fallback.image-placeholder","purpose":"Neutral non-photographic reserved image area where an official image, banner or illustration has not been supplied.","required_semantics":["div role=img","aria-label"],"manual_review":["replace with approved official asset before publication","alternative text accuracy"]},
     {"id":"gov.fallback.dashboard-summary","purpose":"Summary metrics/status layout where no DBIM sample directly fits.","required_semantics":["section","heading","dl or table for metrics"],"manual_review":["data freshness","colour contrast","screen-reader reading order"]}
   ]
 }

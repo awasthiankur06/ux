@@ -136,13 +136,14 @@ async def run_gov_compliance_analysis(agent_doc: dict, settings: dict, run_id: s
     return _parse_json(raw)
 
 
-async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happy_path: list, brand_reference: str | None, gov_compliance: dict | None) -> list:
+async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happy_path: list, brand_reference: str | None, gov_compliance: dict | None, gov_assets: list[dict] | None = None) -> list:
     provider, model = resolve_model(agent_doc, settings)
     profile = get_profile()
     user_payload = {
         "happy_path": happy_path,
         "gov_compliance": gov_compliance or {},
         "brand_reference": brand_reference,
+        "user_provided_gov_assets": gov_assets or [],
         "dbim_manifest": profile["manifest"],
         "dbim_components": profile["components"],
         "dbim_patterns": profile["patterns"],
@@ -154,11 +155,32 @@ async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happ
         "data-gov-fallback-id to HTML, return its ID in fallback_ids, and list the required manual review. Never "
         "invent a fallback or represent it as an official DBIM component."
         " If an official ministry/department logo, icon or image is needed but not supplied in the local asset "
-        "manifest, render a visible text placeholder marked data-gov-asset-placeholder with a descriptive value "
-        "such as department-logo or official-image-required. Do not invent an asset or use an external URL."
+        "manifest, reserve a neutral visual placeholder marked data-gov-asset-placeholder. Do not invent an asset "
+        "or use an external URL. The user_provided_gov_assets list is the only permitted source for uploaded official "
+        "visual assets. Use an asset path only when its asset_type fits the screen; never automatically use state_emblem. "
+        "Never show implementation, approval, review or prompt language in the citizen-facing "
+        "screen (for example 'Awaiting branding confirmation', 'official image required', or 'placeholder'). Keep "
+        "those details only in output metadata/manual_review. Use the service name from the SRS where available; "
+        "otherwise use neutral natural UI copy such as 'Department service'."
         " Use the local compiled DBIM Bootstrap 5.3 utility classes for visible layout and styling (for example "
         "container, row, col-*, navbar, card, btn, form-control, table, alert, breadcrumb, pagination, "
         "d-flex, gap-*, p-*, m-*, text-*); do not output unstyled semantic-only markup."
+        " The local gov-precheck.css stylesheet is approved for this mode. Compose polished, high-fidelity screens "
+        "with its gov-page, gov-site-header, gov-primary-nav, gov-content-card, gov-service-card, gov-section-heading, "
+        "gov-stat and gov-site-footer classes plus local Bootstrap semantic colour variants. Use hierarchy, spacing, "
+        "cards, subtle local shadows and responsive grids. Where imagery would improve a screen but no official asset "
+        "is supplied, use a neutral empty <div class='gov-image-placeholder' role='img' aria-label='Reserved service "
+        "image area'></div>, mark it data-gov-fallback-id='gov.fallback.image-placeholder', and report that fallback "
+        "only in metadata. Never use a fake photo, remote image, arbitrary colour value, or an instruction label in UI."
+        " Temporary exception: Bootstrap Icons are allowed only through the exact Bootstrap Icons stylesheet in the "
+        "DBIM manifest. Use <i class='bi bi-...' aria-hidden='true'></i> only for supplementary icons and keep an "
+        "accessible text label on the containing control. Use the existing local DBIM/Bootstrap system font stack "
+        "(including Noto Sans where available); do not load any other font or icon package."
+        " Every generated page MUST use and mark data-dbim-component-id for dbim.header.global, "
+        "dbim.navigation.primary and dbim.footer.standard. Every page except the first happy-path page MUST "
+        "also use and mark dbim.breadcrumb. Use a neutral text brand placeholder when official branding is "
+        "unavailable; do not use the State Emblem. Include meaningful primary navigation, a skip-to-main link, "
+        "a main landmark, and a footer with clearly labelled policy/contact placeholder links."
     )
     user_payload["generation_contract"] = (
         "Generate exactly one complete standalone HTML document for every happy_path item. Keep each screen_name "
@@ -168,9 +190,12 @@ async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happ
         agent_doc["system_prompt"] + runtime_policy, provider, model, json.dumps(user_payload),
         f"{run_id}-dbim-wireframe", settings,
     )
-    return await _complete_screen_set(
+    screens = await _complete_screen_set(
         agent_doc, settings, run_id, happy_path, _parse_json(raw).get("screens", []), brand_reference,
         gov_compliance=gov_compliance, dbim_profile=profile, runtime_policy=runtime_policy,
+    )
+    return await _ensure_dbim_page_shell(
+        agent_doc, settings, run_id, happy_path, screens, brand_reference, gov_compliance, profile, runtime_policy,
     )
 
 
@@ -228,6 +253,46 @@ async def _complete_screen_set(agent_doc: dict, settings: dict, run_id: str, hap
     return [generated[_screen_key(step.get("screen_name") or "Untitled screen")] for step in happy_path]
 
 
+def _missing_dbim_page_shell(screen: dict, is_home: bool) -> list[str]:
+    html = screen.get("html") or ""
+    required = ["dbim.header.global", "dbim.navigation.primary", "dbim.footer.standard"]
+    if not is_home:
+        required.append("dbim.breadcrumb")
+    return [component_id for component_id in required if f'data-dbim-component-id="{component_id}"' not in html and f"data-dbim-component-id='{component_id}'" not in html]
+
+
+async def _ensure_dbim_page_shell(agent_doc: dict, settings: dict, run_id: str, happy_path: list, screens: list,
+                                  brand_reference: str | None, gov_compliance: dict | None, dbim_profile: dict,
+                                  runtime_policy: str) -> list:
+    """Repair incomplete DBIM page chrome instead of accepting headerless screen output."""
+    provider, model = resolve_model(agent_doc, settings)
+    repaired_screens = []
+    for index, (step, screen) in enumerate(zip(happy_path, screens), start=1):
+        missing = _missing_dbim_page_shell(screen, is_home=index == 1)
+        if not missing:
+            repaired_screens.append(screen)
+            continue
+        payload = {
+            "required_screen": step,
+            "existing_screen": screen,
+            "missing_dbim_page_shell_components": missing,
+            "brand_reference": brand_reference,
+            "gov_compliance": gov_compliance or {},
+            "dbim_manifest": dbim_profile["manifest"],
+            "dbim_components": dbim_profile["components"],
+            "instruction": "Return exactly one complete replacement screen. Preserve the approved screen purpose and existing useful content. Add the missing DBIM page-shell components, mark every one in HTML with data-dbim-component-id, use local DBIM classes/assets only, and reserve neutral accessible space for unavailable official branding or links. Do not show prompt, review, approval or placeholder instructions in visible UI copy.",
+        }
+        raw = await run_llm_agent(
+            agent_doc["system_prompt"] + runtime_policy, provider, model, json.dumps(payload),
+            f"{run_id}-page-shell-repair-{index}", settings,
+        )
+        candidates, remaining = _align_screens_to_happy_path([step], _parse_json(raw).get("screens", []))
+        if not candidates or remaining or _missing_dbim_page_shell(candidates[0], is_home=index == 1):
+            raise RuntimeError(f"The generator did not return the required DBIM page shell for '{step.get('screen_name')}'.")
+        repaired_screens.append(candidates[0])
+    return repaired_screens
+
+
 async def run_export(agent_doc: dict, settings: dict, run_id: str, happy_path: list, wireframes: list, design_system: str = "standard", compliance_report: dict | None = None) -> dict:
     provider, model = resolve_model(agent_doc, settings)
     user = json.dumps({
@@ -251,7 +316,20 @@ async def run_apply_feedback(agent_doc: dict, settings: dict, run_id: str, feedb
     provider, model = resolve_model(agent_doc, settings)
     element_clause = f"\n\nTarget element the user clicked on (modify ONLY this element, leave the rest of the screen intact):\n{element_context}" if element_context else ""
     brand_clause = f"\n\nBrand reference to stay consistent with:\n{brand_reference}" if brand_reference else ""
-    design_system_clause = f"\n\nApproved design-system context (authoritative):\n{json.dumps(design_system_context)}" if design_system_context else ""
+    design_system_clause = ""
+    if design_system_context:
+        design_system_clause = (
+            f"\n\nApproved design-system context (authoritative):\n{json.dumps(design_system_context)}"
+            "\n\nGov feedback policy: Preserve the existing DBIM page shell (global header, primary navigation, "
+            "breadcrumbs where present, main content and standard footer) unless the user explicitly requests a "
+            "structural change that remains DBIM-compliant. For colour or visual enhancement, use only the local "
+            "compiled DBIM/Bootstrap semantic classes such as bg-primary, bg-secondary, text-primary, text-body, "
+            "btn-primary, btn-outline-primary, alert-* and border-* plus approved gov-precheck.css gov-* classes. "
+            "Use gov-image-placeholder for an unavailable official image. Do not add inline colour/background/border "
+            "styles, custom colour variables, Tailwind, Font Awesome, Picsum, unverified assets, or any external CDN "
+            "except the exact Bootstrap Icons stylesheet recorded in the DBIM manifest. "
+            "Do not invent ministry branding, State Emblems, official imagery, icons, claims, links or policies."
+        )
     user = (
         f"User instruction: {instruction}\n\n"
         f"Reference material provided by the user (if any):\n{reference_text or 'None provided.'}"

@@ -23,6 +23,12 @@ export const uploadSrsFile = (file) => {
   form.append("file", file);
   return axios.post(`${API}/upload-srs`, form, { headers: { "Content-Type": "multipart/form-data" } }).then((r) => r.data);
 };
+export const uploadGovAsset = (assetType, file) => {
+  const form = new FormData();
+  form.append("asset_type", assetType);
+  form.append("file", file);
+  return axios.post(`${API}/upload-gov-asset`, form, { headers: { "Content-Type": "multipart/form-data" } }).then((r) => r.data);
+};
 export const downloadRunUrl = (runId) => `${API}/runs/${runId}/download`;
 export const allWireframesPreviewUrl = (runId) => `${API}/runs/${runId}/preview-all`;
 

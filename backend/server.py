@@ -10,8 +10,9 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 from typing import Literal
@@ -19,6 +20,8 @@ from starlette.middleware.cors import CORSMiddleware
 import os
 
 ROOT_DIR = Path(__file__).parent
+GOV_ASSET_DIR = ROOT_DIR / "uploads" / "gov-assets"
+GOV_ASSET_DIR.mkdir(parents=True, exist_ok=True)
 load_dotenv(ROOT_DIR / '.env')
 
 import orchestration
@@ -31,6 +34,11 @@ client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
 app = FastAPI()
+# The responsive external preview is served by this backend. Mount the verified
+# local DBIM package here as well, so its sandboxed documents do not need to
+# fetch CSS or JS from the separate frontend origin.
+app.mount("/design-systems", StaticFiles(directory=ROOT_DIR.parent / "frontend" / "public" / "design-systems"), name="design-systems")
+app.mount("/gov-assets", StaticFiles(directory=GOV_ASSET_DIR), name="gov-assets")
 api_router = APIRouter(prefix="/api")
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -55,6 +63,7 @@ class RunCreate(BaseModel):
     # Standard is deliberately the default so callers created before the Gov
     # Compliance feature continue through the existing pipeline unchanged.
     design_system: Literal["standard", "dbim_gov"] = "standard"
+    gov_assets: list[dict] = []
 
 
 async def get_settings() -> dict:
@@ -153,7 +162,7 @@ async def run_wireframe_stage(run_id: str, happy_path: list, brand_reference: st
                 raise RuntimeError("Gov Compliance generation is unavailable until an approved DBIM package and component catalogue are installed.")
             agent_doc = await db.agents.find_one({"name": "DBIM_COMPONENT_GENERATOR"}, {"_id": 0})
             await push_log(run_id, "generating_wireframes", "DBIM_COMPONENT_GENERATOR", "running", "Rendering DBIM-constrained screens...")
-            wireframes = await orchestration.run_dbim_generation(agent_doc, settings, run_id, happy_path, brand_reference, run.get("gov_compliance"))
+            wireframes = await orchestration.run_dbim_generation(agent_doc, settings, run_id, happy_path, brand_reference, run.get("gov_compliance"), (run.get("input") or {}).get("gov_assets", []))
             report = validate_dbim_screens(wireframes)
             await db.runs.update_one({"id": run_id}, {"$set": {"wireframes": wireframes, "compliance_report": report}})
             await push_log(run_id, "validating_compliance", "DBIM_GIGW_VALIDATOR", "completed", f"{report['summary']['error']} errors, {report['summary']['warning']} warnings.")
@@ -232,7 +241,13 @@ async def run_feedback(run_id: str, feedback_id: str, instruction: str, scope: s
         updated_map = {u["screen_name"]: u["html"] for u in updated if u.get("screen_name")}
         new_wireframes = [{**w, "html": updated_map.get(w["screen_name"], w["html"])} for w in wireframes]
 
-        await db.runs.update_one({"id": run_id}, {"$set": {"wireframes": new_wireframes}})
+        updates = {"wireframes": new_wireframes}
+        if design_system == "dbim_gov":
+            report = validate_dbim_screens(new_wireframes)
+            if not report["passed"]:
+                raise RuntimeError("Gov feedback would violate the DBIM/GIGW design pre-check. Review the compliance findings and revise the feedback.")
+            updates["compliance_report"] = report
+        await db.runs.update_one({"id": run_id}, {"$set": updates})
         await db.runs.update_one(
             {"id": run_id, "feedback_log.id": feedback_id},
             {"$set": {"feedback_log.$.status": "completed"}},
@@ -264,6 +279,31 @@ async def upload_srs(file: UploadFile = File(...)):
     return {"text": text[:20000]}
 
 
+@api_router.post("/upload-gov-asset")
+async def upload_gov_asset(asset_type: str = Form(...), file: UploadFile = File(...)):
+    allowed_types = {"department_logo", "header_visual", "state_emblem"}
+    allowed_extensions = {".png", ".jpg", ".jpeg", ".webp", ".svg"}
+    suffix = Path(file.filename or "").suffix.lower()
+    if asset_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Unsupported government asset type.")
+    if suffix not in allowed_extensions:
+        raise HTTPException(status_code=400, detail="Upload PNG, JPG, WebP, or SVG files only.")
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Government asset must be 5 MB or smaller.")
+    asset_id = str(uuid.uuid4())
+    stored_name = f"{asset_id}{suffix}"
+    (GOV_ASSET_DIR / stored_name).write_bytes(content)
+    return {
+        "id": asset_id,
+        "asset_type": asset_type,
+        "filename": file.filename,
+        "path": f"/gov-assets/{stored_name}",
+        "review_status": "user_provided_manual_review",
+        "usage_note": "State Emblem is never automatically placed; verify permitted legal and organisational use before publication." if asset_type == "state_emblem" else "Use only after project review confirms it is an approved official asset.",
+    }
+
+
 @api_router.post("/runs")
 async def create_run(payload: RunCreate):
     if not payload.srs_text and not payload.url:
@@ -280,6 +320,7 @@ async def create_run(payload: RunCreate):
             "crawl_depth": payload.crawl_depth,
             "brand_reference": payload.brand_reference,
             "design_system": payload.design_system,
+            "gov_assets": payload.gov_assets if payload.design_system == "dbim_gov" else [],
             "compliance_profile": "gigw_3" if payload.design_system == "dbim_gov" else None,
         },
         "orchestrator_plan": None,
@@ -313,25 +354,30 @@ class HappyPathUpdate(BaseModel):
     happy_path: list[dict]
 
 
-def _preview_screen_html(screen_html: str, design_system: str = "standard") -> str:
-    frontend_base = os.environ.get("LOCAL_FRONTEND_BASE_URL", "http://127.0.0.1:3000").rstrip("/")
-    prepared = screen_html.replace('="/design-systems/', f'="{frontend_base}/design-systems/')
+def _preview_screen_html(screen_html: str, design_system: str = "standard", asset_base: str = "") -> str:
+    asset_base = asset_base.rstrip("/")
+    prepared = screen_html.replace('="/design-systems/', f'="{asset_base}/design-systems/')
+    prepared = prepared.replace('="/gov-assets/', f'="{asset_base}/gov-assets/')
     if design_system != "dbim_gov":
         return prepared
-    stylesheet = "/design-systems/dbim/Compiled/css/compiled.min.css"
+    stylesheets = ["/design-systems/dbim/Compiled/css/compiled.min.css", "/design-systems/dbim/gov-precheck.css"]
+    bootstrap_icons = "https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
     script = "/design-systems/dbim/Compiled/js/compiled.bundle.min.js"
-    assets = ""
-    if stylesheet not in prepared:
-        assets += f'<link rel="stylesheet" href="{frontend_base}{stylesheet}">'
+    assets = "".join(
+        f'<link rel="stylesheet" href="{asset_base}{stylesheet}">'
+        for stylesheet in stylesheets if stylesheet not in prepared
+    )
+    if bootstrap_icons not in prepared:
+        assets += f'<link rel="stylesheet" href="{bootstrap_icons}">'
     if script not in prepared:
-        assets += f'<script src="{frontend_base}{script}"></script>'
+        assets += f'<script src="{asset_base}{script}"></script>'
     if not assets:
         return prepared
     return prepared.replace("</head>", f"{assets}</head>") if "</head>" in prepared else f"<head>{assets}</head>{prepared}"
 
 
 @api_router.get("/runs/{run_id}/preview-all", response_class=HTMLResponse)
-async def preview_all_wireframes(run_id: str):
+async def preview_all_wireframes(run_id: str, request: Request):
     doc = await db.runs.find_one({"id": run_id}, {"_id": 0, "wireframes": 1, "input.design_system": 1})
     screens = (doc or {}).get("wireframes") or []
     design_system = ((doc or {}).get("input") or {}).get("design_system", "standard")
@@ -340,7 +386,7 @@ async def preview_all_wireframes(run_id: str):
     frames = []
     for index, screen in enumerate(screens, start=1):
         name = html.escape(screen.get("screen_name") or f"Screen {index}")
-        source = html.escape(_preview_screen_html(screen.get("html") or "", design_system), quote=True)
+        source = html.escape(_preview_screen_html(screen.get("html") or "", design_system, str(request.base_url)), quote=True)
         frames.append(f'<section><h2>{index}. {name}</h2><div class="viewport"><iframe title="{name}" sandbox="allow-scripts allow-same-origin" srcdoc="{source}"></iframe></div></section>')
     return HTMLResponse(
         "<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>"
