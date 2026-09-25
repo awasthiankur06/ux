@@ -13,6 +13,7 @@ from fastapi import FastAPI, APIRouter, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
+from typing import Literal
 from starlette.middleware.cors import CORSMiddleware
 import os
 
@@ -22,6 +23,7 @@ load_dotenv(ROOT_DIR / '.env')
 import orchestration
 import seed_data
 from crawler import crawl_site, capture_screenshot, summarize_pages
+from design_systems.dbim import get_profile as get_dbim_profile, is_ready as dbim_is_ready, validate_screens as validate_dbim_screens
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -49,6 +51,9 @@ class RunCreate(BaseModel):
     url: str | None = None
     crawl_depth: str = "single"
     brand_reference: str | None = None
+    # Standard is deliberately the default so callers created before the Gov
+    # Compliance feature continue through the existing pipeline unchanged.
+    design_system: Literal["standard", "dbim_gov"] = "standard"
 
 
 async def get_settings() -> dict:
@@ -85,7 +90,7 @@ async def push_log(run_id: str, stage: str, label: str, status: str, detail: str
     )
 
 
-async def run_pipeline(run_id: str, srs_text: str | None, url: str | None, crawl_depth: str):
+async def run_pipeline(run_id: str, srs_text: str | None, url: str | None, crawl_depth: str, design_system: str, brand_reference: str | None):
     try:
         settings = await get_settings()
         agent_map = await get_agent_map()
@@ -120,6 +125,15 @@ async def run_pipeline(run_id: str, srs_text: str | None, url: str | None, crawl
                     logger.exception(f"Node {agent_name} failed")
                     await push_log(run_id, agent_name.lower(), agent_name, "error", str(ne))
 
+        if design_system == "dbim_gov":
+            agent_doc = agent_map.get("GOV_COMPLIANCE_ANALYST")
+            if not agent_doc:
+                raise RuntimeError("GOV_COMPLIANCE_ANALYST is not available. Restart the backend to apply the built-in agent migration.")
+            await push_log(run_id, "gov_compliance", "GOV_COMPLIANCE_ANALYST", "running", "Preparing GIGW/DBIM design pre-check constraints...")
+            gov_compliance = await orchestration.run_gov_compliance_analysis(agent_doc, settings, run_id, context, brand_reference)
+            await db.runs.update_one({"id": run_id}, {"$set": {"gov_compliance": gov_compliance}})
+            await push_log(run_id, "gov_compliance", "GOV_COMPLIANCE_ANALYST", "completed", "Gov design pre-check brief ready.")
+
         await push_log(run_id, "happy_path_ready", "SUPER_AGENT", "completed",
                         "Happy path ready for your review. Edit steps or generate wireframes when ready.")
         await db.runs.update_one({"id": run_id}, {"$set": {"status": "awaiting_review", "current_stage": "happy_path_ready"}})
@@ -131,11 +145,26 @@ async def run_pipeline(run_id: str, srs_text: str | None, url: str | None, crawl
 async def run_wireframe_stage(run_id: str, happy_path: list, brand_reference: str | None):
     try:
         settings = await get_settings()
-        agent_doc = await db.agents.find_one({"name": "WIREFRAME_GENERATOR"}, {"_id": 0})
-        await push_log(run_id, "generating_wireframes", "WIREFRAME_GENERATOR", "running", "Rendering live HTML/CSS wireframes...")
-        wireframes = await orchestration.run_wireframe_generation(agent_doc, settings, run_id, happy_path, brand_reference)
-        await db.runs.update_one({"id": run_id}, {"$set": {"wireframes": wireframes}})
-        await push_log(run_id, "generating_wireframes", "WIREFRAME_GENERATOR", "completed", f"{len(wireframes)} screens rendered.")
+        run = await db.runs.find_one({"id": run_id}, {"_id": 0}) or {}
+        design_system = (run.get("input") or {}).get("design_system", "standard")
+        if design_system == "dbim_gov":
+            if not dbim_is_ready():
+                raise RuntimeError("Gov Compliance generation is unavailable until an approved DBIM package and component catalogue are installed.")
+            agent_doc = await db.agents.find_one({"name": "DBIM_COMPONENT_GENERATOR"}, {"_id": 0})
+            await push_log(run_id, "generating_wireframes", "DBIM_COMPONENT_GENERATOR", "running", "Rendering DBIM-constrained screens...")
+            wireframes = await orchestration.run_dbim_generation(agent_doc, settings, run_id, happy_path, brand_reference, run.get("gov_compliance"))
+            report = validate_dbim_screens(wireframes)
+            await db.runs.update_one({"id": run_id}, {"$set": {"wireframes": wireframes, "compliance_report": report}})
+            await push_log(run_id, "validating_compliance", "DBIM_GIGW_VALIDATOR", "completed", f"{report['summary']['error']} errors, {report['summary']['warning']} warnings.")
+            if not report["passed"]:
+                raise RuntimeError("DBIM/GIGW pre-check found blocking errors. Review the compliance report.")
+            await push_log(run_id, "generating_wireframes", "DBIM_COMPONENT_GENERATOR", "completed", f"{len(wireframes)} screens rendered.")
+        else:
+            agent_doc = await db.agents.find_one({"name": "WIREFRAME_GENERATOR"}, {"_id": 0})
+            await push_log(run_id, "generating_wireframes", "WIREFRAME_GENERATOR", "running", "Rendering live HTML/CSS wireframes...")
+            wireframes = await orchestration.run_wireframe_generation(agent_doc, settings, run_id, happy_path, brand_reference)
+            await db.runs.update_one({"id": run_id}, {"$set": {"wireframes": wireframes}})
+            await push_log(run_id, "generating_wireframes", "WIREFRAME_GENERATOR", "completed", f"{len(wireframes)} screens rendered.")
         await db.runs.update_one({"id": run_id}, {"$set": {"status": "completed", "current_stage": "completed"}})
     except Exception as e:
         logger.exception("Wireframe generation failed")
@@ -145,8 +174,12 @@ async def run_wireframe_stage(run_id: str, happy_path: list, brand_reference: st
 async def run_export(run_id: str, happy_path: list, wireframes: list):
     try:
         settings = await get_settings()
+        run = await db.runs.find_one({"id": run_id}, {"_id": 0}) or {}
         agent_doc = await db.agents.find_one({"name": "EXPORT_AGENT"}, {"_id": 0})
-        export = await orchestration.run_export(agent_doc, settings, run_id, happy_path, wireframes)
+        export = await orchestration.run_export(
+            agent_doc, settings, run_id, happy_path, wireframes,
+            (run.get("input") or {}).get("design_system", "standard"), run.get("compliance_report"),
+        )
         await db.runs.update_one({"id": run_id}, {"$set": {"export": export, "export_status": "completed"}})
     except Exception as e:
         logger.exception("Export failed")
@@ -161,8 +194,12 @@ async def run_feedback(run_id: str, feedback_id: str, instruction: str, scope: s
         brand_reference = (doc.get("input") or {}).get("brand_reference")
         target = [w for w in wireframes if w["screen_name"] == screen_name] if scope == "screen" and screen_name else wireframes
 
-        router_doc = await db.agents.find_one({"name": "FEEDBACK_ROUTER"}, {"_id": 0})
-        route = await orchestration.run_feedback_routing(router_doc, settings, run_id, feedback_id, instruction, scope, bool(reference_text))
+        design_system = (doc.get("input") or {}).get("design_system", "standard")
+        if design_system == "dbim_gov":
+            route = {"agent_name": "DBIM_COMPONENT_GENERATOR", "is_new_agent": False, "reasoning": "Gov Compliance runs preserve the approved DBIM component route."}
+        else:
+            router_doc = await db.agents.find_one({"name": "FEEDBACK_ROUTER"}, {"_id": 0})
+            route = await orchestration.run_feedback_routing(router_doc, settings, run_id, feedback_id, instruction, scope, bool(reference_text))
         agent_name = route.get("agent_name", "WIREFRAME_GENERATOR")
         is_new = bool(route.get("is_new_agent"))
 
@@ -189,7 +226,8 @@ async def run_feedback(run_id: str, feedback_id: str, instruction: str, scope: s
             }},
         )
 
-        updated = await orchestration.run_apply_feedback(target_agent_doc, settings, run_id, feedback_id, instruction, target, reference_text, element_context, brand_reference)
+        dbim_context = get_dbim_profile() if design_system == "dbim_gov" else None
+        updated = await orchestration.run_apply_feedback(target_agent_doc, settings, run_id, feedback_id, instruction, target, reference_text, element_context, brand_reference, dbim_context)
         updated_map = {u["screen_name"]: u["html"] for u in updated if u.get("screen_name")}
         new_wireframes = [{**w, "html": updated_map.get(w["screen_name"], w["html"])} for w in wireframes]
 
@@ -235,12 +273,21 @@ async def create_run(payload: RunCreate):
         "status": "running",
         "current_stage": "orchestrating",
         "stage_log": [],
-        "input": {"srs_text": payload.srs_text, "url": payload.url, "crawl_depth": payload.crawl_depth, "brand_reference": payload.brand_reference},
+        "input": {
+            "srs_text": payload.srs_text,
+            "url": payload.url,
+            "crawl_depth": payload.crawl_depth,
+            "brand_reference": payload.brand_reference,
+            "design_system": payload.design_system,
+            "compliance_profile": "gigw_3" if payload.design_system == "dbim_gov" else None,
+        },
         "orchestrator_plan": None,
         "srs_analysis": None,
         "crawl_data": None,
         "business_flow": None,
         "ux_rating": None,
+        "gov_compliance": None,
+        "compliance_report": None,
         "wireframes": None,
         "feedback_log": [],
         "export": None,
@@ -249,7 +296,7 @@ async def create_run(payload: RunCreate):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.runs.insert_one(doc)
-    asyncio.create_task(run_pipeline(run_id, payload.srs_text, payload.url, payload.crawl_depth))
+    asyncio.create_task(run_pipeline(run_id, payload.srs_text, payload.url, payload.crawl_depth, payload.design_system, payload.brand_reference))
     return {"run_id": run_id}
 
 
@@ -315,6 +362,8 @@ async def download_run(run_id: str):
         zf.writestr("styles.css", export.get("css", ""))
         zf.writestr("api_spec.json", json.dumps(export.get("api_spec", []), indent=2))
         zf.writestr("README.md", export.get("readme", ""))
+        if doc.get("compliance_report"):
+            zf.writestr("compliance-report.json", json.dumps(doc["compliance_report"], indent=2))
     buf.seek(0)
     return StreamingResponse(
         buf, media_type="application/zip",

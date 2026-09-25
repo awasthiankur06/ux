@@ -10,6 +10,7 @@ import { WirePreview } from "@/components/studio/WirePreview";
 import { UxRatingReport } from "@/components/studio/UxRatingReport";
 import { ExportPanel } from "@/components/studio/ExportPanel";
 import { FeedbackPanel } from "@/components/studio/FeedbackPanel";
+import { ComplianceReport } from "@/components/studio/ComplianceReport";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { RotateCcw, Cpu, Link2, Bot } from "lucide-react";
@@ -21,6 +22,7 @@ export default function Studio() {
   const [srsText, setSrsText] = useState("");
   const [url, setUrl] = useState("");
   const [crawlDepth, setCrawlDepth] = useState("single");
+  const [designSystem, setDesignSystem] = useState("standard");
   const [brandReference, setBrandReference] = useState(null);
   const [brandFileName, setBrandFileName] = useState(null);
   const [runId, setRunId] = useState(paramRunId || null);
@@ -69,7 +71,13 @@ export default function Studio() {
 
   const handleSubmit = async () => {
     try {
-      const { run_id } = await createRun({ srs_text: srsText || null, url: url || null, crawl_depth: crawlDepth, brand_reference: brandReference });
+      const { run_id } = await createRun({
+        srs_text: srsText || null,
+        url: url || null,
+        crawl_depth: crawlDepth,
+        brand_reference: brandReference,
+        design_system: designSystem,
+      });
       setRunId(run_id);
       setCenterTab("render");
       setGeneratingWireframes(false);
@@ -112,6 +120,7 @@ export default function Studio() {
     setRunId(null);
     setSrsText("");
     setUrl("");
+    setDesignSystem("standard");
     setBrandReference(null);
     setBrandFileName(null);
     setGeneratingWireframes(false);
@@ -172,6 +181,8 @@ export default function Studio() {
             setUrl={setUrl}
             crawlDepth={crawlDepth}
             setCrawlDepth={setCrawlDepth}
+            designSystem={designSystem}
+            setDesignSystem={setDesignSystem}
             onSubmit={handleSubmit}
             loading={run && !["completed", "error", "awaiting_review"].includes(run.status)}
             onFileSelect={handleFileSelect}
@@ -223,6 +234,9 @@ export default function Studio() {
               <TabsTrigger data-testid="tab-ux-rating" value="rating" className="rounded-none text-[11px] uppercase tracking-wide data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none">
                 UX Rating
               </TabsTrigger>
+              <TabsTrigger data-testid="tab-compliance" value="compliance" className="rounded-none text-[11px] uppercase tracking-wide data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none">
+                Compliance
+              </TabsTrigger>
               <TabsTrigger data-testid="tab-feedback" value="feedback" className="rounded-none text-[11px] uppercase tracking-wide data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none">
                 Feedback
               </TabsTrigger>
@@ -232,6 +246,9 @@ export default function Studio() {
             </TabsList>
             <TabsContent value="rating" className="flex-1 lg:overflow-hidden m-0">
               <UxRatingReport uxRating={run?.ux_rating} />
+            </TabsContent>
+            <TabsContent value="compliance" className="flex-1 lg:overflow-hidden m-0">
+              <ComplianceReport report={run?.compliance_report} designSystem={run?.input?.design_system} />
             </TabsContent>
             <TabsContent value="feedback" className="flex-1 lg:overflow-hidden m-0">
               <FeedbackPanel

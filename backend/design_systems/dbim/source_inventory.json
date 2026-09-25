@@ -1,0 +1,26 @@
+{
+  "collected_at": "2026-09-25",
+  "authority": "https://dbimtoolkit.digifootprint.gov.in/",
+  "classification": "public source inventory; not a certification record",
+  "documents": [
+    {"name": "DBIM 3.0", "url": "https://dbimtoolkit.digifootprint.gov.in/static/uploads/2026/09/90e9026b0dc0b854f9ced8eff31ce400.pdf", "local_file": "sources/dbim-3.0.pdf", "format": "pdf"},
+    {"name": "GIGW 3.0", "url": "https://dbimtoolkit.digifootprint.gov.in/static/uploads/2025/02/e3fecb3f602c50bec70eedc682d9a7d0.pdf", "local_file": "sources/gigw-3.0.pdf", "format": "pdf"}
+  ],
+  "design_library": {
+    "base_url": "https://dbimtoolkit.digifootprint.gov.in/design-library",
+    "getting_started": ["introduction", "color-modes", "themes"],
+    "templates": ["homepage", "directory", "list-based", "card-based", "content-based", "multimedia-pages"],
+    "components": ["accordion", "alphabet-filter", "buttons", "breadcrumbs", "external-links", "icon-and-text", "pull-quote", "numbered-data", "schemes-and-services", "vacancy", "footer", "global-header", "inside-page-header", "map", "primary-menu", "secondary-menu", "multimedia-image-element", "multimedia-video-player", "mygov-panel", "pagination", "persona", "pm-quote", "social-media", "tiles-action"],
+    "implementation_status": "public component pages indexed; individual snippets need per-component extraction and reuse review before local storage",
+    "verified_component_records": [
+      {"slug":"accordion","url":"https://dbimtoolkit.digifootprint.gov.in/design-library?type=Components&slug=accordion","observed_at":"2026-09-25","description":"Text Accordion organises content into collapsible sections.","variants":["desktop","desktop-open-state","mobile","mobile-open-state","states"],"implementation":{"react":"visible public reference snippet","html":"tab available","dependencies_observed":["Bootstrap-compatible collapse attributes","material-symbols-outlined icon class"]},"accessibility_observed":["button type","aria-expanded","aria-controls"],"reuse_status":"public reference only; local reuse review pending"}
+    ]
+  },
+  "visual_library": {
+    "base_url": "https://dbimtoolkit.digifootprint.gov.in/visual-library",
+    "categories": ["functional-icons", "contextual-icons", "persona-illustrations", "banner-images", "pm-images", "logos"],
+    "implementation_status": "dynamic asset catalogue; individual records and downloads are not yet captured",
+    "prohibited_default": "Do not use the State Emblem as a generic placeholder."
+  },
+  "excluded": ["login", "CMS administration", "approval and role management", "dashboard", "CCPS subscription/API", "credential-required content"]
+}

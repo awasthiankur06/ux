@@ -1,0 +1,19 @@
+{
+  "id": "dbim_gov",
+  "name": "Government of India DBIM",
+  "version": "DBIM Toolkit compiled package (downloaded 2026-09-25)",
+  "approved_for_generation": false,
+  "source": "https://dbimtoolkit.digifootprint.gov.in/",
+  "license_review_status": "official compiled package is present; component and visual-asset catalogue is incomplete, so generation remains disabled",
+  "assets": {
+    "stylesheets": ["/design-systems/dbim/Compiled/css/compiled.min.css"],
+    "scripts": ["/design-systems/dbim/Compiled/js/compiled.bundle.min.js"],
+    "fonts": [],
+    "images": [],
+    "icons": []
+  },
+  "placeholder_branding": {
+    "id": "gov-neutral-placeholder",
+    "rule": "Use only when no verified department branding is supplied; never use the State Emblem as a generic placeholder."
+  }
+}

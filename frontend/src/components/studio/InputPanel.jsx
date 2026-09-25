@@ -6,7 +6,7 @@ import { Upload, Zap, Palette } from "lucide-react";
 
 export function InputPanel({
   srsText, setSrsText, url, setUrl, crawlDepth, setCrawlDepth, onSubmit, loading, onFileSelect,
-  brandFileName, onBrandFileSelect,
+  brandFileName, onBrandFileSelect, designSystem, setDesignSystem,
 }) {
   const fileRef = useRef(null);
   const brandFileRef = useRef(null);
@@ -64,6 +64,42 @@ export function InputPanel({
         </div>
       </div>
 
+      <div>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">03 // Design System</p>
+        <div className="border border-border" data-testid="design-system-selector">
+          <label className={`flex gap-2 p-2.5 cursor-pointer transition-colors ${designSystem === "standard" ? "bg-primary/10" : "hover:bg-muted/30"}`}>
+            <input
+              type="radio"
+              name="design-system"
+              value="standard"
+              checked={designSystem === "standard"}
+              onChange={() => setDesignSystem("standard")}
+              data-testid="design-system-standard"
+              className="mt-0.5 accent-primary"
+            />
+            <span>
+              <span className="block text-[11px] font-medium">Standard UX</span>
+              <span className="block text-[10px] text-muted-foreground mt-0.5">Uses the current wireframe generation flow.</span>
+            </span>
+          </label>
+          <label className={`flex gap-2 p-2.5 border-t border-border cursor-pointer transition-colors ${designSystem === "dbim_gov" ? "bg-primary/10" : "hover:bg-muted/30"}`}>
+            <input
+              type="radio"
+              name="design-system"
+              value="dbim_gov"
+              checked={designSystem === "dbim_gov"}
+              onChange={() => setDesignSystem("dbim_gov")}
+              data-testid="design-system-gov-compliance"
+              className="mt-0.5 accent-primary"
+            />
+            <span>
+              <span className="block text-[11px] font-medium">Gov Compliance — Design Pre-check</span>
+              <span className="block text-[10px] text-muted-foreground mt-0.5">DBIM and GIGW 3.0 checks will be applied before export.</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
       <Button
         data-testid="initialize-orchestrator-button"
         onClick={onSubmit}
@@ -75,7 +111,7 @@ export function InputPanel({
       </Button>
 
       <div>
-        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">03 // Brand Kit (Optional)</p>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground mb-2">04 // Brand Kit (Optional)</p>
         <input
           ref={brandFileRef}
           type="file"

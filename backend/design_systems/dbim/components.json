@@ -1,0 +1,17 @@
+{
+  "catalogue_version": "DBIM public Design Library inventory (2026-09-25)",
+  "components": [
+    {"id":"dbim.header.global","category":"header","variants":["global-header"],"source":"Design Library"},
+    {"id":"dbim.header.inside-page","category":"header","variants":["inside-page-header"],"source":"Design Library"},
+    {"id":"dbim.footer.standard","category":"footer","variants":["standard-footer"],"source":"Design Library"},
+    {"id":"dbim.navigation.primary","category":"menu","variants":["primary-menu"],"source":"Design Library"},
+    {"id":"dbim.navigation.secondary","category":"menu","variants":["secondary-menu"],"source":"Design Library"},
+    {"id":"dbim.breadcrumb","category":"navigation","variants":["standard"],"source":"Design Library"},
+    {"id":"dbim.button","category":"action","variants":["primary","secondary"],"source":"Design Library"},
+    {"id":"dbim.card","category":"content","variants":["icon-text","schemes-services","vacancy","tiles-action"],"source":"Design Library"},
+    {"id":"dbim.accordion","category":"disclosure","variants":["text-accordion","desktop","desktop-open-state","mobile","mobile-open-state","states"],"source":"Design Library","source_url":"https://dbimtoolkit.digifootprint.gov.in/design-library?type=Components&slug=accordion","purpose":"Organises content into collapsible sections to conserve screen space.","implementation":{"react":"public reference snippet observed","html":"public tab is available; extraction and reuse review pending","css_classes":["department-accordian","department-accordion-item","department-accordion-content","accordion-btn"],"dependencies":["local DBIM compiled stylesheet","Bootstrap-compatible collapse attributes","local icon implementation required"]},"accessibility":{"observed_attributes":["button type","aria-expanded","aria-controls"],"manual_review":"Verify keyboard activation, focus visibility, unique controlled IDs and semantic heading/button structure before reuse."},"local_storage_suitability":"public but source-only/reference until snippet licence and local dependency review are recorded"},
+    {"id":"dbim.pagination","category":"navigation","variants":["standard"],"source":"Design Library"},
+    {"id":"dbim.alphabet-filter","category":"filter","variants":["directory"],"source":"Design Library"},
+    {"id":"dbim.persona","category":"content","variants":["persona-card"],"source":"Design Library"}
+  ]
+}

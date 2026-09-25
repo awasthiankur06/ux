@@ -2,6 +2,7 @@ import json
 import os
 from agents import run_llm_agent, _parse_json
 from crawler import crawl_site, capture_screenshot, summarize_pages
+from design_systems.dbim import get_profile
 
 MODEL_CHOICES = {
     "openai": ["gpt-5.4", "gpt-5.4-mini", "gpt-5.6-terra"],
@@ -116,9 +117,41 @@ async def run_wireframe_generation(agent_doc: dict, settings: dict, run_id: str,
     return data.get("screens", [])
 
 
-async def run_export(agent_doc: dict, settings: dict, run_id: str, happy_path: list, wireframes: list) -> dict:
+async def run_gov_compliance_analysis(agent_doc: dict, settings: dict, run_id: str, context: dict, brand_reference: str | None) -> dict:
     provider, model = resolve_model(agent_doc, settings)
-    user = f"Happy path: {json.dumps(happy_path)}\n\nWireframe screen names: {[w.get('screen_name') for w in wireframes]}"
+    user = (
+        f"SRS analysis: {json.dumps(context.get('srs_analysis')) if context.get('srs_analysis') else 'None.'}\n\n"
+        f"Business flow: {json.dumps(context.get('business_flow') or {})}\n\n"
+        f"Crawl data available: {bool(context.get('crawl_data'))}\n\n"
+        f"Brand reference supplied: {bool(brand_reference)}"
+    )
+    raw = await run_llm_agent(agent_doc["system_prompt"], provider, model, user, f"{run_id}-gov-compliance", settings)
+    return _parse_json(raw)
+
+
+async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happy_path: list, brand_reference: str | None, gov_compliance: dict | None) -> list:
+    provider, model = resolve_model(agent_doc, settings)
+    profile = get_profile()
+    user = json.dumps({
+        "happy_path": happy_path,
+        "gov_compliance": gov_compliance or {},
+        "brand_reference": brand_reference,
+        "dbim_manifest": profile["manifest"],
+        "dbim_components": profile["components"],
+        "dbim_patterns": profile["patterns"],
+    })
+    raw = await run_llm_agent(agent_doc["system_prompt"], provider, model, user, f"{run_id}-dbim-wireframe", settings)
+    return _parse_json(raw).get("screens", [])
+
+
+async def run_export(agent_doc: dict, settings: dict, run_id: str, happy_path: list, wireframes: list, design_system: str = "standard", compliance_report: dict | None = None) -> dict:
+    provider, model = resolve_model(agent_doc, settings)
+    user = json.dumps({
+        "design_system": design_system,
+        "happy_path": happy_path,
+        "wireframes": wireframes,
+        "compliance_report": compliance_report,
+    })
     raw = await run_llm_agent(agent_doc["system_prompt"], provider, model, user, f"{run_id}-export", settings)
     return _parse_json(raw)
 
@@ -130,14 +163,15 @@ async def run_feedback_routing(agent_doc: dict, settings: dict, run_id: str, fee
     return _parse_json(raw)
 
 
-async def run_apply_feedback(agent_doc: dict, settings: dict, run_id: str, feedback_id: str, instruction: str, target_screens: list, reference_text: str | None, element_context: str | None, brand_reference: str | None) -> list:
+async def run_apply_feedback(agent_doc: dict, settings: dict, run_id: str, feedback_id: str, instruction: str, target_screens: list, reference_text: str | None, element_context: str | None, brand_reference: str | None, design_system_context: dict | None = None) -> list:
     provider, model = resolve_model(agent_doc, settings)
     element_clause = f"\n\nTarget element the user clicked on (modify ONLY this element, leave the rest of the screen intact):\n{element_context}" if element_context else ""
     brand_clause = f"\n\nBrand reference to stay consistent with:\n{brand_reference}" if brand_reference else ""
+    design_system_clause = f"\n\nApproved design-system context (authoritative):\n{json.dumps(design_system_context)}" if design_system_context else ""
     user = (
         f"User instruction: {instruction}\n\n"
         f"Reference material provided by the user (if any):\n{reference_text or 'None provided.'}"
-        f"{element_clause}{brand_clause}\n\n"
+        f"{element_clause}{brand_clause}{design_system_clause}\n\n"
         f"Current screens to modify (apply the instruction to each, keep everything else about them intact "
         f"unless the instruction implies otherwise):\n{json.dumps(target_screens)}"
     )

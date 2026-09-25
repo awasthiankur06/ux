@@ -81,11 +81,43 @@ EXPORT_AGENT_PROMPT = (
     'Respond with ONLY JSON: {"react_components": [{"filename": "ScreenName.jsx", "code": "..."}], '
     '"css": "...", "api_spec": [{"method": "GET", "path": "/api/...", "description": "...", '
     '"request_body": {}, "response_body": {}}], "readme": "..."}. '
-    "React components must be functional components using Tailwind utility classes only (no external CSS "
-    "libraries), one file per screen. css should contain any shared/global styles needed. api_spec should "
+    "For design_system=standard, React components must use Tailwind utility classes only. For design_system=dbim_gov, "
+    "preserve the supplied DBIM semantic markup, approved local asset paths and component traceability; do not replace "
+    "them with Tailwind or an external UI library. One file per screen. css should contain any shared/global styles needed. api_spec should "
     "propose the REST endpoints implied by the happy path actions. readme is markdown explaining how to "
     "drop these files into a React + Tailwind project and wire them to the API. "
     "Output ONLY a single JSON object and nothing else - no extra text before or after it."
+)
+
+GOV_COMPLIANCE_ANALYST_PROMPT = (
+    "You are the GOV COMPLIANCE ANALYST. Convert the available SRS analysis, website findings and "
+    "business flow into a design pre-check brief for an Indian government digital service. This is not "
+    "a certification decision. Apply GIGW 3.0-oriented design and accessibility considerations and "
+    "DBIM component/pattern constraints. Preserve the supplied business flow; do not invent product "
+    "requirements. Branding is optional: use a user-supplied brand reference when present; otherwise "
+    "mark branding as unresolved so the renderer can use the approved neutral placeholder. Never invent "
+    "a ministry identity or use the State Emblem as a placeholder. Respond with ONLY JSON: "
+    '{"profile":"gigw_3_dbim","requirements":[{"id":"GOV-001","screen_name":"...","requirement":"...","source":"SRS|flow|GIGW|DBIM","priority":"required|recommended"}],'
+    '"screen_constraints":[{"screen_name":"...","required_patterns":["..."],"accessibility":["..."],"manual_review":["..."]}],'
+    '"branding":{"status":"provided|unresolved","guidance":"..."},"manual_review":["..."]}. '
+    "Use stable, concise IDs and include every happy-path screen."
+)
+
+DBIM_COMPONENT_GENERATOR_PROMPT = (
+    "You are the DBIM COMPONENT GENERATOR. Generate complete standalone HTML screens using ONLY the "
+    "approved DBIM design-system profile, component catalogue and local asset manifest supplied in the "
+    "user message. The catalogue and manifest are authoritative. Do not use Tailwind, Font Awesome, "
+    "picsum, other external UI libraries or external CDNs. DBIM's locally packaged compiled framework "
+    "may use Bootstrap-compatible classes; do not add a separate Bootstrap dependency. Do not invent "
+    "assets or unapproved component classes. "
+    "Use semantic HTML, accessible labels, keyboard-operable controls, meaningful alternative text, a "
+    "valid document language, and logical heading order. Include local DBIM stylesheet/script references "
+    "listed in the manifest. Preserve requirement IDs and report every DBIM component ID used. If a "
+    "needed component is unavailable, list it under unresolved_gaps rather than inventing one. Respond "
+    'with ONLY JSON: {"screens":[{"screen_name":"...","html":"<!DOCTYPE html>...",'
+    '"requirement_ids":["GOV-001"],"component_ids":["dbim...."],"asset_ids":["..."]}],'
+    '"unresolved_gaps":["..."]}. '
+    "This is a design pre-check output, not an official compliance certificate."
 )
 
 DEFAULT_AGENTS = [
@@ -97,6 +129,8 @@ DEFAULT_AGENTS = [
     {"name": "UX_CRITIQUE", "description": "Rates an existing app's UX with rationale.", "agent_type": "llm", "system_prompt": UX_CRITIQUE_PROMPT},
     {"name": "WIREFRAME_GENERATOR", "description": "Generates live, runnable HTML/CSS wireframes per screen.", "agent_type": "llm", "system_prompt": WIREFRAME_GENERATOR_PROMPT},
     {"name": "EXPORT_AGENT", "description": "Converts approved wireframes into React + CSS + API spec + README.", "agent_type": "llm", "system_prompt": EXPORT_AGENT_PROMPT},
+    {"name": "GOV_COMPLIANCE_ANALYST", "description": "Builds a GIGW 3.0 / DBIM design pre-check brief for Gov Compliance runs.", "agent_type": "llm", "system_prompt": GOV_COMPLIANCE_ANALYST_PROMPT},
+    {"name": "DBIM_COMPONENT_GENERATOR", "description": "Generates DBIM-constrained screens using approved local components and assets.", "agent_type": "llm", "system_prompt": DBIM_COMPONENT_GENERATOR_PROMPT},
 ]
 
 DEFAULT_FLOW_NODES = [
@@ -116,13 +150,14 @@ DEFAULT_SETTINGS = {"id": "global", "default_provider": "openai", "default_model
 
 async def seed_if_empty(db):
     now = datetime.now(timezone.utc).isoformat()
-    if await db.agents.count_documents({}) == 0:
-        docs = [
-            {**a, "id": str(uuid.uuid4()), "model_provider": None, "model_name": None,
-             "is_builtin": True, "is_dynamic": False, "created_at": now, "updated_at": now}
-            for a in DEFAULT_AGENTS
-        ]
-        await db.agents.insert_many(docs)
+    # Existing installations already have agent records. Insert only missing built-ins;
+    # never overwrite user-edited prompts, model choices or custom agents at startup.
+    for agent in DEFAULT_AGENTS:
+        if not await db.agents.find_one({"name": agent["name"]}, {"_id": 1}):
+            await db.agents.insert_one({
+                **agent, "id": str(uuid.uuid4()), "model_provider": None, "model_name": None,
+                "is_builtin": True, "is_dynamic": False, "created_at": now, "updated_at": now,
+            })
     if await db.flows.count_documents({"is_active": True}) == 0:
         await db.flows.insert_one({
             "id": str(uuid.uuid4()), "name": "default", "nodes": DEFAULT_FLOW_NODES,

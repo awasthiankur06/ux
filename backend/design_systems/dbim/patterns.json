@@ -1,0 +1,3 @@
+{
+  "patterns": ["homepage", "directory", "list-based", "card-based", "content-based", "multimedia-pages", "header", "footer", "breadcrumb", "card", "accordion", "pagination", "service-list", "content-page"]
+}
