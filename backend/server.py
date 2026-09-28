@@ -248,11 +248,18 @@ async def run_feedback(run_id: str, feedback_id: str, instruction: str, scope: s
             )
             updates["wireframes"] = new_wireframes
             report = validate_dbim_screens(new_wireframes)
-            if not report["passed"]:
-                first_error = next((finding["message"] for finding in report["findings"] if finding["severity"] == "error"), "Review the compliance findings and revise the feedback.")
-                raise RuntimeError(f"Gov feedback needs revision: {first_error}")
             updates["compliance_report"] = report
         await db.runs.update_one({"id": run_id}, {"$set": updates})
+        if design_system == "dbim_gov":
+            if report["passed"]:
+                await db.runs.update_one({"id": run_id}, {"$set": {"status": "completed", "current_stage": "completed", "error": None}})
+            else:
+                remaining = report["summary"]["error"]
+                await db.runs.update_one({"id": run_id}, {"$set": {
+                    "status": "error",
+                    "current_stage": "validating_compliance",
+                    "error": f"{remaining} Gov Compliance pre-check error(s) remain. Select a finding to continue resolving it.",
+                }})
         await db.runs.update_one(
             {"id": run_id, "feedback_log.id": feedback_id},
             {"$set": {"feedback_log.$.status": "completed"}},
