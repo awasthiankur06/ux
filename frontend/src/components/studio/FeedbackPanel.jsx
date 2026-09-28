@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { submitFeedback } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,12 @@ const COLOR_PRESETS = [
   { name: "Rose", hex: "#F43F5E" },
   { name: "Amber", hex: "#F59E0B" },
   { name: "Cyan", hex: "#06B6D4" },
+];
+const GOV_COLOR_PRESETS = [
+  { name: "Primary", text: "Use the approved local DBIM/Bootstrap primary semantic treatment (bg-primary, text-primary, btn-primary) for the main action and emphasis." },
+  { name: "Secondary", text: "Use the approved local DBIM/Bootstrap secondary semantic treatment for supporting actions and neutral emphasis." },
+  { name: "Success", text: "Use the approved local DBIM/Bootstrap success semantic treatment only for confirmed positive status." },
+  { name: "Warning", text: "Use the approved local DBIM/Bootstrap warning semantic treatment only for caution states, with text and icon support." },
 ];
 const ROUNDNESS_PRESETS = [
   { label: "Sharp", text: "Use sharp corners (no border-radius) for buttons and cards throughout." },
@@ -29,7 +35,7 @@ const FONT_PRESETS = [
   { label: "Large", text: "Increase the base font sizes throughout for better readability." },
 ];
 
-export function FeedbackPanel({ run, runId, activeScreenName, selectedElement, onClearSelectedElement, onSubmitted }) {
+export function FeedbackPanel({ run, runId, activeScreenName, selectedElement, onClearSelectedElement, onSubmitted, designSystem, suggestedFeedback }) {
   const [instruction, setInstruction] = useState("");
   const [scope, setScope] = useState("screen");
   const [file, setFile] = useState(null);
@@ -41,6 +47,13 @@ export function FeedbackPanel({ run, runId, activeScreenName, selectedElement, o
   const pending = feedbackLog.some((f) => f.status === "running");
 
   const appendPreset = (text) => setInstruction((prev) => (prev ? `${prev} ${text}` : text));
+  useEffect(() => {
+    if (suggestedFeedback?.text) {
+      setInstruction(suggestedFeedback.text);
+      setScope("screen");
+    }
+  }, [suggestedFeedback?.id]);
+  const colorPresets = designSystem === "dbim_gov" ? GOV_COLOR_PRESETS : COLOR_PRESETS;
 
   const handleSubmit = async () => {
     if (!instruction.trim()) return;
@@ -98,15 +111,15 @@ export function FeedbackPanel({ run, runId, activeScreenName, selectedElement, o
         <div>
           <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Quick Adjustments</p>
           <div className="flex flex-wrap gap-1 mb-1">
-            {COLOR_PRESETS.map((c) => (
+            {colorPresets.map((c) => (
               <button
                 key={c.name}
                 data-testid={`preset-color-${c.name.toLowerCase()}`}
                 title={c.name}
-                onClick={() => appendPreset(`Use ${c.name} (${c.hex}) as the primary accent color throughout.`)}
-                className="w-5 h-5 border border-border shrink-0"
-                style={{ backgroundColor: c.hex }}
-              />
+                onClick={() => appendPreset(c.text || `Use ${c.name} (${c.hex}) as the primary accent color throughout.`)}
+                className={`border border-border shrink-0 ${designSystem === "dbim_gov" ? "px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-muted-foreground hover:text-white" : "w-5 h-5"}`}
+                style={designSystem === "dbim_gov" ? undefined : { backgroundColor: c.hex }}
+              >{designSystem === "dbim_gov" ? c.name : null}</button>
             ))}
           </div>
           <div className="flex flex-wrap gap-1 mb-1">

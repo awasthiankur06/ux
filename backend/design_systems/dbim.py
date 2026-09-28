@@ -9,6 +9,28 @@ from pathlib import Path
 
 DBIM_DIR = Path(__file__).with_name("dbim")
 
+FINDING_ACTIONS = {
+    "dbim-page-shell": ("header, nav, footer", "Restore the DBIM global header, primary navigation, skip-to-main link, main landmark, and standard footer. Preserve the approved content."),
+    "heading-order": ("h1, h2, h3", "Correct the heading hierarchy: use one page h1 and do not skip heading levels."),
+    "image-alt": ("img", "Add concise, meaningful alternative text to every informative image; keep decorative images appropriately marked."),
+    "form-label": ("input, select, textarea", "Add a visible label or programmatic aria-label for every form control, preserving the existing DBIM form styling."),
+    "button-name": ("button", "Give each button a clear accessible name while preserving the approved DBIM/Bootstrap button classes."),
+    "dbim-colour-token": ("body", "Replace custom colours with approved local DBIM/Bootstrap semantic classes such as bg-primary, text-primary, btn-primary, alert-* or border-*."),
+    "citizen-copy": ("main", "Replace implementation or approval language with natural citizen-facing service content. Keep review details only in metadata."),
+    "remote-preview-image": ("img", "Replace the remote preview image with a user-provided approved asset, or retain it only as a clearly reviewed preview image with accurate alt text."),
+    "dbim-stylesheet": ("head", "Include the required local DBIM stylesheet links and retain local-only DBIM styling."),
+    "dbim-script": ("head", "Include the required local DBIM behaviour bundle for interactive DBIM components."),
+}
+
+
+def _decorate_finding(finding: dict) -> None:
+    selector, suggestion = FINDING_ACTIONS.get(finding["rule"], ("main", "Resolve this finding while preserving the approved DBIM page shell and local semantic styles."))
+    control = re.search(r"Control '([^']+)'", finding.get("message", ""))
+    if control:
+        selector = f"#{control.group(1)}"
+    finding["selector"] = selector
+    finding["suggested_feedback"] = suggestion
+
 
 def _load(name: str) -> dict:
     with (DBIM_DIR / name).open(encoding="utf-8") as file:
@@ -115,6 +137,7 @@ def validate_screens(screens: list[dict]) -> dict:
                 findings.append({"severity": "warning", "screen_name": name, "rule": "fallback-traceability", "message": f"Fallback ID is declared but not marked in HTML: {fallback_id}"})
 
     for finding in findings:
+        _decorate_finding(finding)
         rule = rule_catalogue.get(finding["rule"])
         if rule:
             finding["rule_title"] = rule["title"]

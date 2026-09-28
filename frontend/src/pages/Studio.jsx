@@ -34,6 +34,8 @@ export default function Studio() {
   const [generatingWireframes, setGeneratingWireframes] = useState(false);
   const [commentMode, setCommentMode] = useState(false);
   const [selectedElement, setSelectedElement] = useState(null);
+  const [complianceTarget, setComplianceTarget] = useState(null);
+  const [suggestedFeedback, setSuggestedFeedback] = useState(null);
   const handleRunNotFound = useCallback(() => {
     toast.error("Run not found - starting fresh");
     setRunId(null);
@@ -120,6 +122,16 @@ export default function Studio() {
   const handleElementSelected = (descriptor) => {
     setSelectedElement(descriptor);
     setCommentMode(false);
+    setRightTab("feedback");
+  };
+
+  const handleComplianceFinding = (finding) => {
+    const screenIndex = (run?.wireframes || []).findIndex((screen) => screen.screen_name === finding.screen_name);
+    if (screenIndex >= 0) setActiveScreenIdx(screenIndex);
+    setComplianceTarget(finding.selector || "main");
+    setSelectedElement(finding.selector || "main");
+    setSuggestedFeedback({ id: `${finding.rule}-${finding.screen_name || "run"}-${Date.now()}`, text: finding.suggested_feedback || "Resolve this compliance finding while preserving the approved DBIM page shell and local semantic styles." });
+    setCenterTab("render");
     setRightTab("feedback");
   };
 
@@ -241,6 +253,7 @@ export default function Studio() {
                 setCommentMode={setCommentMode}
                 onElementSelected={handleElementSelected}
                 designSystem={run?.input?.design_system}
+                complianceTarget={complianceTarget}
               />
             </TabsContent>
           </Tabs>
@@ -266,7 +279,7 @@ export default function Studio() {
               <UxRatingReport uxRating={run?.ux_rating} />
             </TabsContent>
             <TabsContent value="compliance" className="flex-1 lg:overflow-hidden m-0">
-              <ComplianceReport report={run?.compliance_report} designSystem={run?.input?.design_system} govAssets={run?.input?.gov_assets} />
+              <ComplianceReport report={run?.compliance_report} designSystem={run?.input?.design_system} govAssets={run?.input?.gov_assets} onFindingSelect={handleComplianceFinding} />
             </TabsContent>
             <TabsContent value="feedback" className="flex-1 lg:overflow-hidden m-0">
               <FeedbackPanel
@@ -276,6 +289,8 @@ export default function Studio() {
                 selectedElement={selectedElement}
                 onClearSelectedElement={() => setSelectedElement(null)}
                 onSubmitted={() => setResumeKey((k) => k + 1)}
+                designSystem={run?.input?.design_system}
+                suggestedFeedback={suggestedFeedback}
               />
             </TabsContent>
             <TabsContent value="export" className="flex-1 lg:overflow-hidden m-0">

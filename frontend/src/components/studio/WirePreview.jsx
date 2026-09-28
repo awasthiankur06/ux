@@ -8,6 +8,10 @@ const COMMENT_SCRIPT = `
   var commentMode = false;
   window.addEventListener('message', function(e){
     if (e.data && e.data.type === 'toggle-comment-mode') commentMode = e.data.value;
+    if (e.data && e.data.type === 'focus-compliance-target') {
+      var target = document.querySelector(e.data.selector || 'main');
+      if (target) { target.style.outline = '3px solid #00E5FF'; target.style.outlineOffset = '4px'; target.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(function(){ target.style.outline=''; target.style.outlineOffset=''; }, 3500); }
+    }
   });
   document.addEventListener('mouseover', function(e){
     if (!commentMode) return;
@@ -56,7 +60,7 @@ function injectCommentScript(html, designSystem) {
   return prepared + COMMENT_SCRIPT;
 }
 
-export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, setCommentMode, onElementSelected, runId, designSystem }) {
+export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, setCommentMode, onElementSelected, runId, designSystem, complianceTarget }) {
   const iframeRef = useRef(null);
   const idx = Math.min(activeIdx, Math.max(0, (wireframes?.length || 1) - 1));
 
@@ -75,6 +79,9 @@ export function WirePreview({ wireframes, activeIdx, setActiveIdx, commentMode, 
   }, [commentMode]);
 
   useEffect(() => { sendCommentMode(); }, [sendCommentMode]);
+  useEffect(() => {
+    if (complianceTarget) iframeRef.current?.contentWindow?.postMessage({ type: "focus-compliance-target", selector: complianceTarget }, "*");
+  }, [complianceTarget, idx]);
 
   if (!wireframes || wireframes.length === 0) {
     return (
