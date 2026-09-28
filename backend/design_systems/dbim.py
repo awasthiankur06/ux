@@ -86,6 +86,11 @@ def validate_screens(screens: list[dict]) -> dict:
         for source in re.findall(r"(?:src|href)=[\"']([^\"']+)[\"']", html, re.I):
             if source.startswith("http://"):
                 findings.append({"severity": "warning", "screen_name": name, "rule": "secure-link", "message": f"Insecure HTTP reference: {source}"})
+        for image_source in re.findall(r"<img\b[^>]*\bsrc=[\"'](https://[^\"']+)[\"'][^>]*>", html, re.I):
+            if not image_source.startswith("https://images.unsplash.com/"):
+                findings.append({"severity": "error", "screen_name": name, "rule": "remote-preview-image", "message": f"Unapproved remote image source: {image_source}"})
+            else:
+                findings.append({"severity": "warning", "screen_name": name, "rule": "remote-preview-image", "message": "Remote preview image requires rights and production-replacement review."})
         for control in re.findall(r"<(?:input|select|textarea)\b[^>]*>", html, re.I):
             control_id = re.search(r"\bid=[\"']([^\"']+)[\"']", control, re.I)
             aria_label = re.search(r"\baria-label=[\"'][^\"']+[\"']", control, re.I)

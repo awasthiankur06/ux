@@ -20,6 +20,13 @@
     "restriction": "Gov output may use only Bootstrap Icons bi-* classes from this URL. Replace with approved local DBIM icons when available.",
     "manual_review_required": true
   },
+  "preview_image_policy": {
+    "allowed": true,
+    "sources": ["https://images.unsplash.com/"],
+    "purpose": "High-fidelity design preview imagery only when no user-provided approved visual asset is available.",
+    "restriction": "Never use remote imagery for logos, emblems, official seals, evidence, statistics, scheme claims, or final production publication. Each remote image requires replacement/reuse-rights review.",
+    "manual_review_required": true
+  },
   "placeholder_branding": {
     "id": "gov-neutral-placeholder",
     "rule": "Use only when no verified department branding is supplied; never use the State Emblem as a generic placeholder."

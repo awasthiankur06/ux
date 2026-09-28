@@ -156,8 +156,12 @@ async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happ
         "invent a fallback or represent it as an official DBIM component."
         " If an official ministry/department logo, icon or image is needed but not supplied in the local asset "
         "manifest, reserve a neutral visual placeholder marked data-gov-asset-placeholder. Do not invent an asset "
-        "or use an external URL. The user_provided_gov_assets list is the only permitted source for uploaded official "
-        "visual assets. Use an asset path only when its asset_type fits the screen; never automatically use state_emblem. "
+        "or use an external URL for official identity. The user_provided_gov_assets list is the source of truth for "
+        "uploaded official visual assets. If department_logo or state_emblem is supplied, use it in the page header with "
+        "appropriate alt text and data-gov-asset-id. If header_visual is supplied, use it on the first screen's hero. "
+        "For a visually rich PREVIEW only, if no user-provided header visual fits, an HTTPS image from the allowed "
+        "preview_image_policy source may be used with descriptive alt text and data-gov-preview-image='true'; list it "
+        "under manual_review. Never use remote imagery for logos, emblems, claims, schemes, statistics or final publication. "
         "Never show implementation, approval, review or prompt language in the citizen-facing "
         "screen (for example 'Awaiting branding confirmation', 'official image required', or 'placeholder'). Keep "
         "those details only in output metadata/manual_review. Use the service name from the SRS where available; "
@@ -176,6 +180,10 @@ async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happ
         "DBIM manifest. Use <i class='bi bi-...' aria-hidden='true'></i> only for supplementary icons and keep an "
         "accessible text label on the containing control. Use the existing local DBIM/Bootstrap system font stack "
         "(including Noto Sans where available); do not load any other font or icon package."
+        " Build premium, production-ready screens: apply documented DBIM components first. If a documented DBIM component "
+        "does not fit an element, use a supplied controlled fallback or a familiar standard HTML/Bootstrap pattern with "
+        "the local gov-precheck classes—never degrade the user experience to bare markup. Use a complete responsive page "
+        "composition with meaningful hierarchy, visual balance, real content blocks, cards, clear states and polished actions."
         " Every generated page MUST use and mark data-dbim-component-id for dbim.header.global, "
         "dbim.navigation.primary and dbim.footer.standard. Every page except the first happy-path page MUST "
         "also use and mark dbim.breadcrumb. Use a neutral text brand placeholder when official branding is "
@@ -195,7 +203,7 @@ async def run_dbim_generation(agent_doc: dict, settings: dict, run_id: str, happ
         gov_compliance=gov_compliance, dbim_profile=profile, runtime_policy=runtime_policy,
     )
     return await _ensure_dbim_page_shell(
-        agent_doc, settings, run_id, happy_path, screens, brand_reference, gov_compliance, profile, runtime_policy,
+        agent_doc, settings, run_id, happy_path, screens, brand_reference, gov_compliance, profile, runtime_policy, gov_assets or [],
     )
 
 
@@ -258,17 +266,36 @@ def _missing_dbim_page_shell(screen: dict, is_home: bool) -> list[str]:
     required = ["dbim.header.global", "dbim.navigation.primary", "dbim.footer.standard"]
     if not is_home:
         required.append("dbim.breadcrumb")
-    return [component_id for component_id in required if f'data-dbim-component-id="{component_id}"' not in html and f"data-dbim-component-id='{component_id}'" not in html]
+    missing = [component_id for component_id in required if f'data-dbim-component-id="{component_id}"' not in html and f"data-dbim-component-id='{component_id}'" not in html]
+    for tag in ("header", "nav", "main", "footer"):
+        if not re.search(rf"<{tag}\b", html, re.I):
+            missing.append(f"semantic-{tag}")
+    if "skip-to-main" not in html:
+        missing.append("skip-to-main-link")
+    return missing
+
+
+def _missing_required_asset_ids(screen: dict, gov_assets: list[dict], is_home: bool) -> list[str]:
+    html = screen.get("html") or ""
+    missing = []
+    for asset in gov_assets:
+        asset_type = asset.get("asset_type")
+        required_here = asset_type in {"department_logo", "state_emblem"} or (asset_type == "header_visual" and is_home)
+        asset_id = asset.get("id")
+        if required_here and f'data-gov-asset-id="{asset_id}"' not in html and f"data-gov-asset-id='{asset_id}'" not in html:
+            missing.append(f"user-asset:{asset_type}")
+    return missing
 
 
 async def _ensure_dbim_page_shell(agent_doc: dict, settings: dict, run_id: str, happy_path: list, screens: list,
                                   brand_reference: str | None, gov_compliance: dict | None, dbim_profile: dict,
-                                  runtime_policy: str) -> list:
+                                  runtime_policy: str, gov_assets: list[dict]) -> list:
     """Repair incomplete DBIM page chrome instead of accepting headerless screen output."""
     provider, model = resolve_model(agent_doc, settings)
     repaired_screens = []
     for index, (step, screen) in enumerate(zip(happy_path, screens), start=1):
         missing = _missing_dbim_page_shell(screen, is_home=index == 1)
+        missing.extend(_missing_required_asset_ids(screen, gov_assets, is_home=index == 1))
         if not missing:
             repaired_screens.append(screen)
             continue
@@ -280,6 +307,7 @@ async def _ensure_dbim_page_shell(agent_doc: dict, settings: dict, run_id: str, 
             "gov_compliance": gov_compliance or {},
             "dbim_manifest": dbim_profile["manifest"],
             "dbim_components": dbim_profile["components"],
+            "user_provided_gov_assets": gov_assets,
             "instruction": "Return exactly one complete replacement screen. Preserve the approved screen purpose and existing useful content. Add the missing DBIM page-shell components, mark every one in HTML with data-dbim-component-id, use local DBIM classes/assets only, and reserve neutral accessible space for unavailable official branding or links. Do not show prompt, review, approval or placeholder instructions in visible UI copy.",
         }
         raw = await run_llm_agent(
@@ -287,7 +315,7 @@ async def _ensure_dbim_page_shell(agent_doc: dict, settings: dict, run_id: str, 
             f"{run_id}-page-shell-repair-{index}", settings,
         )
         candidates, remaining = _align_screens_to_happy_path([step], _parse_json(raw).get("screens", []))
-        if not candidates or remaining or _missing_dbim_page_shell(candidates[0], is_home=index == 1):
+        if not candidates or remaining or _missing_dbim_page_shell(candidates[0], is_home=index == 1) or _missing_required_asset_ids(candidates[0], gov_assets, is_home=index == 1):
             raise RuntimeError(f"The generator did not return the required DBIM page shell for '{step.get('screen_name')}'.")
         repaired_screens.append(candidates[0])
     return repaired_screens
