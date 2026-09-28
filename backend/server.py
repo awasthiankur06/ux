@@ -243,9 +243,14 @@ async def run_feedback(run_id: str, feedback_id: str, instruction: str, scope: s
 
         updates = {"wireframes": new_wireframes}
         if design_system == "dbim_gov":
+            new_wireframes = orchestration.normalize_gov_feedback_screens(
+                new_wireframes, (doc.get("input") or {}).get("gov_assets", []),
+            )
+            updates["wireframes"] = new_wireframes
             report = validate_dbim_screens(new_wireframes)
             if not report["passed"]:
-                raise RuntimeError("Gov feedback would violate the DBIM/GIGW design pre-check. Review the compliance findings and revise the feedback.")
+                first_error = next((finding["message"] for finding in report["findings"] if finding["severity"] == "error"), "Review the compliance findings and revise the feedback.")
+                raise RuntimeError(f"Gov feedback needs revision: {first_error}")
             updates["compliance_report"] = report
         await db.runs.update_one({"id": run_id}, {"$set": updates})
         await db.runs.update_one(

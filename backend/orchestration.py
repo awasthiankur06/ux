@@ -319,6 +319,28 @@ def _inject_dbim_page_shell(screen: dict, step: dict, is_home: bool, gov_assets:
     return {**screen, "screen_name": title, "html": html}
 
 
+def normalize_gov_feedback_screens(screens: list[dict], gov_assets: list[dict]) -> list[dict]:
+    """Restore non-negotiable local DBIM document assets/page chrome after a targeted feedback edit."""
+    profile = get_profile()
+    normalized = []
+    for index, screen in enumerate(screens, start=1):
+        html = screen.get("html") or ""
+        assets = ""
+        for stylesheet in profile["manifest"]["assets"]["stylesheets"]:
+            if stylesheet not in html:
+                assets += f'<link rel="stylesheet" href="{stylesheet}">'
+        for script in profile["manifest"]["assets"]["scripts"]:
+            if script not in html:
+                assets += f'<script src="{script}"></script>'
+        if assets:
+            html = html.replace("</head>", f"{assets}</head>") if "</head>" in html else f"<!doctype html><html lang='en'><head><title>{screen.get('screen_name', 'Department service')}</title><meta name='viewport' content='width=device-width'>{assets}</head><body>{html}</body></html>"
+        candidate = {**screen, "html": html}
+        if _missing_dbim_page_shell(candidate, is_home=index == 1) or _missing_required_asset_ids(candidate, gov_assets, is_home=index == 1):
+            candidate = _inject_dbim_page_shell(candidate, {"screen_name": candidate.get("screen_name")}, is_home=index == 1, gov_assets=gov_assets)
+        normalized.append(candidate)
+    return normalized
+
+
 async def _ensure_dbim_page_shell(agent_doc: dict, settings: dict, run_id: str, happy_path: list, screens: list,
                                   brand_reference: str | None, gov_compliance: dict | None, dbim_profile: dict,
                                   runtime_policy: str, gov_assets: list[dict]) -> list:
