@@ -103,8 +103,8 @@ export function InputPanel({
       </div>
 
       {designSystem === "dbim_gov" && <div className="border border-border p-3 space-y-2" data-testid="gov-asset-upload-panel">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">04 // Approved Gov Assets (Optional)</p>
-        <p className="text-[10px] text-muted-foreground">User-provided assets are marked for compliance review. The State Emblem is never placed automatically.</p>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">04 // Official Project Identity (Optional)</p>
+        <p className="text-[10px] text-muted-foreground">Upload only the official logo, header visual, or State Emblem if needed. DBIM guidance, components, icons and preview imagery are managed by the application.</p>
         <input ref={govAssetRef} type="file" accept=".png,.jpg,.jpeg,.webp,.svg" className="hidden" onChange={(e) => { const file = e.target.files?.[0]; if (file && pendingGovAssetType) onGovAssetSelect?.(pendingGovAssetType, file); e.target.value = ""; }} />
         {[['department_logo', 'Upload Department Logo'], ['header_visual', 'Upload Header Visual'], ['state_emblem', 'Upload State Emblem']].map(([assetType, label]) => {
           const asset = govAssets.find((item) => item.asset_type === assetType);
