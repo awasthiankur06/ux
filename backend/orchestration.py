@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from agents import run_llm_agent, _parse_json
 from crawler import crawl_site, capture_screenshot, summarize_pages
 from design_systems.dbim import get_profile
@@ -287,6 +288,37 @@ def _missing_required_asset_ids(screen: dict, gov_assets: list[dict], is_home: b
     return missing
 
 
+def _inject_dbim_page_shell(screen: dict, step: dict, is_home: bool, gov_assets: list[dict]) -> dict:
+    """Last-resort local shell: never fail an entire Gov run because an LLM omitted page chrome."""
+    html = screen.get("html") or "<!doctype html><html lang='en'><head><title>Department service</title></head><body></body></html>"
+    title = step.get("screen_name") or screen.get("screen_name") or "Department service"
+    brand_assets = [asset for asset in gov_assets if asset.get("asset_type") in {"department_logo", "state_emblem"}]
+    brand_markup = "".join(
+        f'<img src="{asset.get("path", "")}" alt="{("State Emblem" if asset.get("asset_type") == "state_emblem" else "Department logo")}" data-gov-asset-id="{asset.get("id", "")}" class="img-fluid" style="max-height:48px">'
+        for asset in brand_assets
+    ) or '<span class="gov-brand-placeholder">Department service</span>'
+    breadcrumb = "" if is_home else f'<nav aria-label="Breadcrumb" data-dbim-component-id="dbim.breadcrumb" class="container py-3"><ol class="breadcrumb mb-0"><li class="breadcrumb-item"><a href="#main-content">Home</a></li><li class="breadcrumb-item active" aria-current="page">{title}</li></ol></nav>'
+    shell_start = (
+        '<a class="gov-skip-link btn btn-sm btn-light" href="#main-content">Skip to main content</a>'
+        f'<header class="gov-site-header" data-dbim-component-id="dbim.header.global"><div class="container py-3 d-flex justify-content-between align-items-center gap-3">{brand_markup}<span class="fw-semibold">{title}</span></div></header>'
+        '<nav class="gov-primary-nav" aria-label="Primary navigation" data-dbim-component-id="dbim.navigation.primary"><div class="container"><ul class="nav py-2"><li class="nav-item"><a class="nav-link" href="#main-content">Services</a></li><li class="nav-item"><a class="nav-link" href="#main-content">Information</a></li><li class="nav-item"><a class="nav-link" href="#main-content">Contact</a></li></ul></div></nav>'
+        + breadcrumb
+    )
+    shell_end = '<footer class="gov-site-footer mt-5 py-4" data-dbim-component-id="dbim.footer.standard"><div class="container d-flex flex-wrap justify-content-between gap-3"><span>Department service</span><nav aria-label="Footer"><a class="me-3" href="#main-content">Website policies</a><a href="#main-content">Contact</a></nav></div></footer>'
+    if not re.search(r"<main\b", html, re.I):
+        body_match = re.search(r"(<body[^>]*>)(.*?)(</body>)", html, re.I | re.S)
+        if body_match:
+            content = body_match.group(2)
+            replacement = f"{body_match.group(1)}{shell_start}<main id=\"main-content\" class=\"container py-4\">{content}</main>{shell_end}{body_match.group(3)}"
+            html = html[:body_match.start()] + replacement + html[body_match.end():]
+        else:
+            html += f"<body>{shell_start}<main id=\"main-content\" class=\"container py-4\"></main>{shell_end}</body>"
+    else:
+        html = re.sub(r"(<body[^>]*>)", r"\1" + shell_start, html, count=1, flags=re.I)
+        html = re.sub(r"</body>", shell_end + "</body>", html, count=1, flags=re.I)
+    return {**screen, "screen_name": title, "html": html}
+
+
 async def _ensure_dbim_page_shell(agent_doc: dict, settings: dict, run_id: str, happy_path: list, screens: list,
                                   brand_reference: str | None, gov_compliance: dict | None, dbim_profile: dict,
                                   runtime_policy: str, gov_assets: list[dict]) -> list:
@@ -315,9 +347,10 @@ async def _ensure_dbim_page_shell(agent_doc: dict, settings: dict, run_id: str, 
             f"{run_id}-page-shell-repair-{index}", settings,
         )
         candidates, remaining = _align_screens_to_happy_path([step], _parse_json(raw).get("screens", []))
-        if not candidates or remaining or _missing_dbim_page_shell(candidates[0], is_home=index == 1) or _missing_required_asset_ids(candidates[0], gov_assets, is_home=index == 1):
-            raise RuntimeError(f"The generator did not return the required DBIM page shell for '{step.get('screen_name')}'.")
-        repaired_screens.append(candidates[0])
+        candidate = candidates[0] if candidates and not remaining else screen
+        if _missing_dbim_page_shell(candidate, is_home=index == 1) or _missing_required_asset_ids(candidate, gov_assets, is_home=index == 1):
+            candidate = _inject_dbim_page_shell(candidate, step, is_home=index == 1, gov_assets=gov_assets)
+        repaired_screens.append(candidate)
     return repaired_screens
 
 
